@@ -7,7 +7,7 @@ class StackBoardItem {
   const StackBoardItem({
     required this.child,
     this.id,
-    this.onDel,
+    this.onDelete,
     this.caseStyle,
     this.tapToEdit = false,
   });
@@ -19,7 +19,7 @@ class StackBoardItem {
   final Widget child;
 
   /// 移除回调
-  final Future<bool> Function()? onDel;
+  final Future<bool> Function()? onDelete;
 
   /// 外框样式
   final CaseStyle? caseStyle;
@@ -31,14 +31,14 @@ class StackBoardItem {
   StackBoardItem copyWith({
     int? id,
     Widget? child,
-    Future<bool> Function()? onDel,
+    Future<bool> Function()? onDelete,
     CaseStyle? caseStyle,
     bool? tapToEdit,
   }) =>
       StackBoardItem(
         id: id ?? this.id,
         child: child ?? this.child,
-        onDel: onDel ?? this.onDel,
+        onDelete: onDelete ?? this.onDelete,
         caseStyle: caseStyle ?? this.caseStyle,
         tapToEdit: tapToEdit ?? this.tapToEdit,
       );

@@ -11,8 +11,8 @@ class DrawingBoardCase extends StatefulWidget {
   const DrawingBoardCase({
     Key? key,
     required this.stackDrawing,
-    this.onDel,
-    this.operatState = OperatState.editing,
+    this.onDelete,
+    this.operationState = OperationState.editing,
     this.onTap,
   }) : super(key: key);
 
@@ -23,13 +23,13 @@ class DrawingBoardCase extends StatefulWidget {
   final StackDrawing stackDrawing;
 
   /// 移除拦截
-  final void Function()? onDel;
+  final void Function()? onDelete;
 
   /// 点击回调
   final void Function()? onTap;
 
   /// 操作状态
-  final OperatState? operatState;
+  final OperationState? operationState;
 }
 
 class _DrawingBoardCaseState extends State<DrawingBoardCase>
@@ -44,7 +44,7 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
   late SafeValueNotifier<bool> _isDrawing;
 
   /// 操作状态
-  OperatState? _operatState;
+  OperationState? _operationState;
 
   /// 是否正在编辑
   bool _isEditing = true;
@@ -52,7 +52,7 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
   @override
   void initState() {
     super.initState();
-    _operatState = widget.operatState ?? OperatState.editing;
+    _operationState = widget.operationState ?? OperationState.editing;
     _drawingController = DrawingController(config: DrawConfig.def());
     _indicator = SafeValueNotifier<double>(1);
     _isDrawing = SafeValueNotifier<bool>(false);
@@ -60,8 +60,8 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
 
   @override
   void didUpdateWidget(covariant DrawingBoardCase oldWidget) {
-    if (widget.operatState != oldWidget.operatState) {
-      safeSetState(() => _operatState = widget.operatState);
+    if (widget.operationState != oldWidget.operationState) {
+      safeSetState(() => _operationState = widget.operationState);
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -91,12 +91,12 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
   @override
   Widget build(BuildContext context) {
     return ItemCase(
-      isCenter: false,
-      canEdit: true,
+      isCentered: false,
+      isEditable: true,
       onTap: widget.onTap,
       tapToEdit: widget.stackDrawing.tapToEdit,
       tools: _tools,
-      operatState: _operatState,
+      operationState: _operationState,
       child: FittedBox(
         child: SizedBox.fromSize(
           size: widget.stackDrawing.size,
@@ -121,13 +121,13 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
           ),
         ),
       ),
-      onDel: widget.onDel,
+      onDelete: widget.onDelete,
       caseStyle: widget.stackDrawing.caseStyle,
-      onOperatStateChanged: (OperatState os) {
-        if (os == OperatState.editing && !_isEditing) {
+      onOperationStateChanged: (OperationState os) {
+        if (os == OperationState.editing && !_isEditing) {
           _isEditing = true;
           safeSetState(() {});
-        } else if (os != OperatState.editing && _isEditing) {
+        } else if (os != OperationState.editing && _isEditing) {
           _isEditing = false;
           safeSetState(() {});
         }
@@ -202,13 +202,16 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
         height: widget.stackDrawing.caseStyle!.iconSize * 1.6,
         child: ExValueBuilder<DrawConfig>(
           valueListenable: _drawingController.drawConfig,
-          shouldRebuild: (DrawConfig? p, DrawConfig? n) =>
-              p!.paintType == type || n!.paintType == type,
-          builder: (_, DrawConfig? dc, __) {
+          shouldRebuild:
+              (DrawConfig? previousDrawConfig, DrawConfig? newDrawConfig) =>
+                  previousDrawConfig!.paintType == type ||
+                  newDrawConfig!.paintType == type,
+          builder: (_, DrawConfig? drawConfig, __) {
             return Icon(
               icon,
-              color:
-                  dc?.paintType == type ? Theme.of(context).primaryColor : null,
+              color: drawConfig?.paintType == type
+                  ? Theme.of(context).primaryColor
+                  : null,
               size: widget.stackDrawing.caseStyle?.iconSize,
             );
           },
@@ -250,9 +253,10 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
                       min: 1,
                       divisions: 50,
                       label: ind?.floor().toString(),
-                      onChanged: (double v) => _indicator.value = v,
-                      onChangeEnd: (double v) =>
-                          _drawingController.setThickness = v,
+                      onChanged: (double newValue) =>
+                          _indicator.value = newValue,
+                      onChangeEnd: (double newValue) =>
+                          _drawingController.setThickness = newValue,
                     );
                   },
                 ),
@@ -263,14 +267,15 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
               height: iconSize,
               child: ExValueBuilder<DrawConfig?>(
                 valueListenable: _drawingController.drawConfig,
-                shouldRebuild: (DrawConfig? p, DrawConfig? n) =>
-                    p!.color != n!.color,
-                builder: (_, DrawConfig? dc, ___) {
+                shouldRebuild: (DrawConfig? previousDrawConfig,
+                        DrawConfig? newDrawConfig) =>
+                    previousDrawConfig!.color != newDrawConfig!.color,
+                builder: (_, DrawConfig? drawConfig, ___) {
                   return TextButton(
                     onPressed: _pickColor,
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,
-                      backgroundColor: dc?.color,
+                      backgroundColor: drawConfig?.color,
                       shape: const RoundedRectangleBorder(),
                     ),
                     child: const SizedBox.shrink(),

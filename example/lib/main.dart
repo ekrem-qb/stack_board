@@ -7,11 +7,11 @@ import 'package:stack_board/stack_board.dart';
 class CustomItem extends StackBoardItem {
   const CustomItem({
     required this.color,
-    Future<bool> Function()? onDel,
+    Future<bool> Function()? onDelete,
     int? id, // <==== must
   }) : super(
           child: const Text('CustomItem'),
-          onDel: onDel,
+          onDelete: onDelete,
           id: id, // <==== must
         );
 
@@ -22,13 +22,13 @@ class CustomItem extends StackBoardItem {
     CaseStyle? caseStyle,
     Widget? child,
     int? id,
-    Future<bool> Function()? onDel,
+    Future<bool> Function()? onDelete,
     dynamic Function(bool)? onEdit,
     bool? tapToEdit,
     Color? color,
   }) =>
       CustomItem(
-        onDel: onDel,
+        onDelete: onDelete,
         id: id,
         color: color ?? this.color,
       );
@@ -128,7 +128,7 @@ class _HomePageState extends State<HomePage> {
         background: ColoredBox(color: Colors.grey[100]!),
 
         /// 点击取消全部选中状态
-        /// tapToCancelAllItem: true,
+        /// tapToCancelAllItems: true,
 
         /// 如果使用了继承于StackBoardItem的自定义item
         /// 使用这个接口进行重构
@@ -136,8 +136,8 @@ class _HomePageState extends State<HomePage> {
           if (t is CustomItem) {
             return ItemCase(
               key: Key('StackBoardItem${t.id}'), // <==== must
-              isCenter: false,
-              onDel: () async => _boardController.remove(t.id),
+              isCentered: false,
+              onDelete: () async => _boardController.remove(t.id),
               onTap: () => _boardController.moveItemToTop(t.id),
               caseStyle: const CaseStyle(
                 borderColor: Colors.grey,
@@ -216,7 +216,7 @@ class _HomePageState extends State<HomePage> {
                             'Custom Widget',
                             style: TextStyle(color: Colors.black),
                           ),
-                          onDel: _onDel,
+                          onDelete: _onDel,
                           // caseStyle: const CaseStyle(initOffset: Offset(100, 100)),
                         ),
                       );
@@ -231,7 +231,7 @@ class _HomePageState extends State<HomePage> {
                           color: Color((math.Random().nextDouble() * 0xFFFFFF)
                                   .toInt())
                               .withOpacity(1.0),
-                          onDel: () async => true,
+                          onDelete: () async => true,
                         ),
                       );
                     },
@@ -266,10 +266,10 @@ class _ItemCaseDemoState extends State<ItemCaseDemo> {
     return Stack(
       children: <Widget>[
         ItemCase(
-          isCenter: false,
+          isCentered: false,
           child: const Text('Custom case'),
-          onDel: () async {},
-          onOperatStateChanged: (OperatState operatState) => null,
+          onDelete: () async {},
+          onOperationStateChanged: (OperationState operationState) => null,
           onOffsetChanged: (Offset offset) => null,
           onSizeChanged: (Size size) => null,
         ),

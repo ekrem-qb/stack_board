@@ -20,8 +20,8 @@ class StackBoard extends StatefulWidget {
     this.background,
     this.caseStyle = const CaseStyle(),
     this.customBuilder,
-    this.tapToCancelAllItem = false,
-    this.tapItemToMoveTop = true,
+    this.tapToCancelAllItems = false,
+    this.tapItemToMoveToTop = true,
   }) : super(key: key);
 
   @override
@@ -40,10 +40,10 @@ class StackBoard extends StatefulWidget {
   final Widget? Function(StackBoardItem item)? customBuilder;
 
   /// 点击空白处取消全部选择（比较消耗性能，默认关闭）
-  final bool tapToCancelAllItem;
+  final bool tapToCancelAllItems;
 
   /// 点击item移至顶层
-  final bool tapItemToMoveTop;
+  final bool tapItemToMoveToTop;
 }
 
 class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
@@ -54,7 +54,7 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
   int _lastId = 0;
 
   /// 所有item的操作状态
-  OperatState? _operatState;
+  OperationState? _operationState;
 
   /// 生成唯一Key
   Key _getKey(int? id) => Key('StackBoardItem$id');
@@ -111,18 +111,18 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
 
   /// 取消全部选中
   void _unFocus() {
-    _operatState = OperatState.complate;
+    _operationState = OperationState.complete;
     safeSetState(() {});
     Future<void>.delayed(const Duration(milliseconds: 500), () {
-      _operatState = null;
+      _operationState = null;
       safeSetState(() {});
     });
   }
 
   /// 删除动作
-  Future<void> _onDel(StackBoardItem box) async {
-    final bool del = (await box.onDel?.call()) ?? true;
-    if (del) _remove(box.id);
+  Future<void> _onDelete(StackBoardItem box) async {
+    final bool delete = (await box.onDelete?.call()) ?? true;
+    if (delete) _remove(box.id);
   }
 
   @override
@@ -144,7 +144,7 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
         ],
       );
 
-    if (widget.tapToCancelAllItem) {
+    if (widget.tapToCancelAllItems) {
       _child = GestureDetector(
         onTap: _unFocus,
         child: _child,
@@ -163,38 +163,38 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
         height: 150,
         alignment: Alignment.center,
         child: const Text(
-            'unknow item type, please use customBuilder to build it'),
+            'Unknown item type, please use customBuilder to build it'),
       ),
-      onDel: () => _onDel(item),
+      onDelete: () => _onDelete(item),
       onTap: () => _moveItemToTop(item.id),
       caseStyle: item.caseStyle,
-      operatState: _operatState,
+      operationState: _operationState,
     );
 
     if (item is AdaptiveText) {
       child = AdaptiveTextCase(
         key: _getKey(item.id),
         adaptiveText: item,
-        onDel: () => _onDel(item),
+        onDelete: () => _onDelete(item),
         onTap: () => _moveItemToTop(item.id),
-        operatState: _operatState,
+        operationState: _operationState,
       );
     } else if (item is StackDrawing) {
       child = DrawingBoardCase(
         key: _getKey(item.id),
         stackDrawing: item,
-        onDel: () => _onDel(item),
+        onDelete: () => _onDelete(item),
         onTap: () => _moveItemToTop(item.id),
-        operatState: _operatState,
+        operationState: _operationState,
       );
     } else {
       child = ItemCase(
         key: _getKey(item.id),
         child: item.child,
-        onDel: () => _onDel(item),
+        onDelete: () => _onDelete(item),
         onTap: () => _moveItemToTop(item.id),
         caseStyle: item.caseStyle,
-        operatState: _operatState,
+        operationState: _operationState,
       );
 
       if (widget.customBuilder != null) {
@@ -212,36 +212,36 @@ class StackBoardController {
   _StackBoardState? _stackBoardState;
 
   /// 检查是否加载
-  void _check() {
+  void _done() {
     if (_stackBoardState == null) throw '_stackBoardState is empty';
   }
 
   /// 添加一个
   void add<T extends StackBoardItem>(T item) {
-    _check();
+    _done();
     _stackBoardState?._add<T>(item);
   }
 
   /// 移除
   void remove(int? id) {
-    _check();
+    _done();
     _stackBoardState?._remove(id);
   }
 
   void moveItemToTop(int? id) {
-    _check();
+    _done();
     _stackBoardState?._moveItemToTop(id);
   }
 
   /// 清理全部
   void clear() {
-    _check();
+    _done();
     _stackBoardState?._clear();
   }
 
   /// 刷新
   void refresh() {
-    _check();
+    _done();
     _stackBoardState?.safeSetState(() {});
   }
 

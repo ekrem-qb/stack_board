@@ -39,15 +39,15 @@ class ItemCase extends StatefulWidget {
   const ItemCase({
     Key? key,
     required this.child,
-    this.isCenter = true,
+    this.isCentered = true,
     this.tools,
     this.caseStyle = const CaseStyle(),
     this.tapToEdit = false,
-    this.operatState = OperatState.idle,
-    this.canEdit = false,
-    this.onDel,
+    this.operationState = OperationState.idle,
+    this.isEditable = false,
+    this.onDelete,
     this.onSizeChanged,
-    this.onOperatStateChanged,
+    this.onOperationStateChanged,
     this.onOffsetChanged,
     this.onAngleChanged,
     this.onTap,
@@ -63,10 +63,10 @@ class ItemCase extends StatefulWidget {
   final Widget? tools;
 
   /// 是否进行居中对齐(自动包裹Center)
-  final bool isCenter;
+  final bool isCentered;
 
   /// 能否编辑
-  final bool canEdit;
+  final bool isEditable;
 
   /// 外框样式
   final CaseStyle? caseStyle;
@@ -75,10 +75,10 @@ class ItemCase extends StatefulWidget {
   final bool tapToEdit;
 
   /// 操作状态
-  final OperatState? operatState;
+  final OperationState? operationState;
 
   /// 移除拦截
-  final void Function()? onDel;
+  final void Function()? onDelete;
 
   /// 点击回调
   final void Function()? onTap;
@@ -94,7 +94,7 @@ class ItemCase extends StatefulWidget {
   final bool? Function(double offset)? onAngleChanged;
 
   /// 操作状态回调
-  final bool? Function(OperatState)? onOperatStateChanged;
+  final bool? Function(OperationState)? onOperationStateChanged;
 }
 
 class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
@@ -102,7 +102,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   late SafeValueNotifier<_Config> _config;
 
   /// 操作状态
-  late OperatState _operatState;
+  late OperationState _operationState;
 
   /// 外框样式
   CaseStyle get _caseStyle => widget.caseStyle ?? const CaseStyle();
@@ -110,18 +110,18 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   @override
   void initState() {
     super.initState();
-    _operatState = widget.operatState ?? OperatState.idle;
+    _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config.def());
     _config.value.offset = widget.caseStyle?.initOffset;
   }
 
   @override
   void didUpdateWidget(covariant ItemCase oldWidget) {
-    if (widget.operatState != null &&
-        widget.operatState != oldWidget.operatState) {
-      _operatState = widget.operatState!;
+    if (widget.operationState != null &&
+        widget.operationState != oldWidget.operationState) {
+      _operationState = widget.operationState!;
       safeSetState(() {});
-      widget.onOperatStateChanged?.call(_operatState);
+      widget.onOperationStateChanged?.call(_operationState);
     }
 
     super.didUpdateWidget(oldWidget);
@@ -136,23 +136,23 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   /// 点击
   void _onTap() {
     if (widget.tapToEdit) {
-      if (_operatState != OperatState.editing) {
-        _operatState = OperatState.editing;
+      if (_operationState != OperationState.editing) {
+        _operationState = OperationState.editing;
         safeSetState(() {});
       }
-    } else if (_operatState == OperatState.complate) {
-      safeSetState(() => _operatState = OperatState.idle);
+    } else if (_operationState == OperationState.complete) {
+      safeSetState(() => _operationState = OperationState.idle);
     }
 
     widget.onTap?.call();
-    widget.onOperatStateChanged?.call(_operatState);
+    widget.onOperationStateChanged?.call(_operationState);
   }
 
   /// 切回常规状态
   void _changeToIdle() {
-    if (_operatState != OperatState.idle) {
-      _operatState = OperatState.idle;
-      widget.onOperatStateChanged?.call(_operatState);
+    if (_operationState != OperationState.idle) {
+      _operationState = OperationState.idle;
+      widget.onOperationStateChanged?.call(_operationState);
 
       safeSetState(() {});
     }
@@ -160,16 +160,16 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 移动操作
   void _moveHandle(DragUpdateDetails dud) {
-    if (_operatState != OperatState.moving) {
-      if (_operatState == OperatState.scaling ||
-          _operatState == OperatState.roating) {
-        _operatState = OperatState.moving;
+    if (_operationState != OperationState.moving) {
+      if (_operationState == OperationState.scaling ||
+          _operationState == OperationState.rotating) {
+        _operationState = OperationState.moving;
       } else {
-        _operatState = OperatState.moving;
+        _operationState = OperationState.moving;
         safeSetState(() {});
       }
 
-      widget.onOperatStateChanged?.call(_operatState);
+      widget.onOperationStateChanged?.call(_operationState);
     }
 
     final double angle = _config.value.angle ?? 0;
@@ -195,16 +195,16 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 缩放操作
   void _scaleHandle(DragUpdateDetails dud) {
-    if (_operatState != OperatState.scaling) {
-      if (_operatState == OperatState.moving ||
-          _operatState == OperatState.roating) {
-        _operatState = OperatState.scaling;
+    if (_operationState != OperationState.scaling) {
+      if (_operationState == OperationState.moving ||
+          _operationState == OperationState.rotating) {
+        _operationState = OperationState.scaling;
       } else {
-        _operatState = OperatState.scaling;
+        _operationState = OperationState.scaling;
         safeSetState(() {});
       }
 
-      widget.onOperatStateChanged?.call(_operatState);
+      widget.onOperationStateChanged?.call(_operationState);
     }
 
     if (_config.value.offset == null) return;
@@ -264,17 +264,17 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 旋转操作
-  void _roateHandle(DragUpdateDetails dud) {
-    if (_operatState != OperatState.roating) {
-      if (_operatState == OperatState.moving ||
-          _operatState == OperatState.scaling) {
-        _operatState = OperatState.roating;
+  void _rotateHandle(DragUpdateDetails dud) {
+    if (_operationState != OperationState.rotating) {
+      if (_operationState == OperationState.moving ||
+          _operationState == OperationState.scaling) {
+        _operationState = OperationState.rotating;
       } else {
-        _operatState = OperatState.roating;
+        _operationState = OperationState.rotating;
         safeSetState(() {});
       }
 
-      widget.onOperatStateChanged?.call(_operatState);
+      widget.onOperationStateChanged?.call(_operationState);
     }
 
     if (_config.value.size == null) return;
@@ -323,9 +323,9 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 主体鼠标指针样式
   MouseCursor get _cursor {
-    if (_operatState == OperatState.moving) {
+    if (_operationState == OperationState.moving) {
       return SystemMouseCursors.grabbing;
-    } else if (_operatState == OperatState.editing) {
+    } else if (_operationState == OperationState.editing) {
       return SystemMouseCursors.click;
     }
 
@@ -349,12 +349,14 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
             _border,
             _child,
             if (widget.tools != null) _tools,
-            if (widget.canEdit && _operatState != OperatState.complate) _edit,
-            if (_operatState != OperatState.complate) _roate,
-            if (_operatState != OperatState.complate) _check,
-            if (widget.onDel != null && _operatState != OperatState.complate)
-              _del,
-            if (_operatState != OperatState.complate) _scale,
+            if (widget.isEditable && _operationState != OperationState.complete)
+              _edit,
+            if (_operationState != OperationState.complete) _rotate,
+            if (_operationState != OperationState.complete) _done,
+            if (widget.onDelete != null &&
+                _operationState != OperationState.complete)
+              _delete,
+            if (_operationState != OperationState.complete) _scale,
           ]),
         ),
       ),
@@ -387,7 +389,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       );
     }
 
-    if (widget.isCenter) content = Center(child: content);
+    if (widget.isCentered) content = Center(child: content);
 
     return ExValueBuilder<_Config>(
       shouldRebuild: (_Config? p, _Config? n) => p?.size != n?.size,
@@ -415,7 +417,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: _operatState == OperatState.complate
+            color: _operationState == OperationState.complete
                 ? Colors.transparent
                 : _caseStyle.borderColor,
             width: _caseStyle.borderWidth,
@@ -431,16 +433,16 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
-          if (_operatState == OperatState.editing) {
-            _operatState = OperatState.idle;
+          if (_operationState == OperationState.editing) {
+            _operationState = OperationState.idle;
           } else {
-            _operatState = OperatState.editing;
+            _operationState = OperationState.editing;
           }
           safeSetState(() {});
-          widget.onOperatStateChanged?.call(_operatState);
+          widget.onOperationStateChanged?.call(_operationState);
         },
         child: _toolCase(
-          Icon(_operatState == OperatState.editing
+          Icon(_operationState == OperationState.editing
               ? Icons.border_color
               : Icons.edit),
         ),
@@ -449,14 +451,14 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 删除手柄
-  Widget get _del {
+  Widget get _delete {
     return Positioned(
       top: 0,
       right: 0,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onTap: () => widget.onDel?.call(),
+          onTap: () => widget.onDelete?.call(),
           child: _toolCase(const Icon(Icons.clear)),
         ),
       ),
@@ -485,7 +487,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 旋转手柄
-  Widget get _roate {
+  Widget get _rotate {
     return Positioned(
       top: 0,
       bottom: 0,
@@ -493,7 +495,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onPanUpdate: _roateHandle,
+          onPanUpdate: _rotateHandle,
           onPanEnd: (_) => _changeToIdle(),
           onDoubleTap: _turnBack,
           child: _toolCase(
@@ -508,7 +510,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 完成操作
-  Widget get _check {
+  Widget get _done {
     return Positioned(
       bottom: 0,
       left: 0,
@@ -516,10 +518,10 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: () {
-            if (_operatState != OperatState.complate) {
-              _operatState = OperatState.complate;
+            if (_operationState != OperationState.complete) {
+              _operationState = OperationState.complete;
               safeSetState(() {});
-              widget.onOperatStateChanged?.call(_operatState);
+              widget.onOperationStateChanged?.call(_operationState);
             }
           },
           child: _toolCase(const Icon(Icons.check)),

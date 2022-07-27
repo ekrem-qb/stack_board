@@ -13,8 +13,8 @@ class AdaptiveTextCase extends StatefulWidget {
   const AdaptiveTextCase({
     Key? key,
     required this.adaptiveText,
-    this.onDel,
-    this.operatState,
+    this.onDelete,
+    this.operationState,
     this.onTap,
   }) : super(key: key);
 
@@ -25,13 +25,13 @@ class AdaptiveTextCase extends StatefulWidget {
   final AdaptiveText adaptiveText;
 
   /// 移除拦截
-  final void Function()? onDel;
+  final void Function()? onDelete;
 
   /// 点击回调
   final void Function()? onTap;
 
   /// 操作状态
-  final OperatState? operatState;
+  final OperationState? operationState;
 }
 
 class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
@@ -61,18 +61,18 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
   @override
   Widget build(BuildContext context) {
     return ItemCase(
-      isCenter: false,
-      canEdit: true,
+      isCentered: false,
+      isEditable: true,
       onTap: widget.onTap,
       tapToEdit: widget.adaptiveText.tapToEdit,
       child: _isEditing ? _buildEditingBox : _buildTextBox,
-      onDel: widget.onDel,
-      operatState: widget.operatState,
+      onDelete: widget.onDelete,
+      operationState: widget.operationState,
       caseStyle: widget.adaptiveText.caseStyle,
-      onOperatStateChanged: (OperatState s) {
-        if (s != OperatState.editing && _isEditing) {
+      onOperationStateChanged: (OperationState s) {
+        if (s != OperationState.editing && _isEditing) {
           safeSetState(() => _isEditing = false);
-        } else if (s == OperatState.editing && !_isEditing) {
+        } else if (s == OperationState.editing && !_isEditing) {
           safeSetState(() => _isEditing = true);
         }
 
@@ -118,7 +118,7 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
           child: TextFormField(
             autofocus: true,
             initialValue: _text,
-            onChanged: (String v) => _text = v,
+            onChanged: (String newText) => _text = newText,
             style: _style,
             textAlign: widget.adaptiveText.textAlign ?? TextAlign.start,
             textDirection: widget.adaptiveText.textDirection,

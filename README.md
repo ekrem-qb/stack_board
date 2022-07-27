@@ -1,6 +1,6 @@
 # Stack Board
 
-A Flutter package of custom stack board. 
+A Flutter package of custom stack board.
 
 [![pub package](https://img.shields.io/pub/v/stack_board?logo=dart&label=stable&style=flat-square)](https://pub.dev/packages/stack_board)
 [![GitHub stars](https://img.shields.io/github/stars/fluttercandies/stack_board?logo=github&style=flat-square)](https://github.com/fluttercandies/stack_board/stargazers)
@@ -107,7 +107,7 @@ _boardController.add(
             'Custom Widget',
             style: TextStyle(color: Colors.black),
         ),
-        onDel: _onDel,
+        onDelete: _onDel,
     ),
 );
 ```
@@ -161,7 +161,7 @@ Future<bool> _onDel() async {
 }
 ```
 
-</details> 
+</details>
 
 ---
 
@@ -181,11 +181,11 @@ Future<bool> _onDel() async {
 class CustomItem extends StackBoardItem {
   const CustomItem({
     required this.color,
-    Future<bool> Function()? onDel,
+    Future<bool> Function()? onDelete,
     int? id, // <==== must
   }) : super(
           child: const Text('CustomItem'),
-          onDel: onDel,
+          onDelete: onDelete,
           id: id, // <==== must
         );
 
@@ -196,13 +196,13 @@ class CustomItem extends StackBoardItem {
     CaseStyle? caseStyle,
     Widget? child,
     int? id,
-    Future<bool> Function()? onDel,
+    Future<bool> Function()? onDelete,
     dynamic Function(bool)? onEdit,
     bool? tapToEdit,
     Color? color,
   }) =>
       CustomItem(
-        onDel: onDel,
+        onDelete: onDelete,
         id: id,
         color: color ?? this.color,
       );
@@ -217,7 +217,7 @@ import 'dart:math' as math;
 _boardController.add<CustomItem>(
     CustomItem(
         color: Color((math.Random().nextDouble() * 0xFFFFFF).toInt()),
-        onDel: () async => true,
+        onDelete: () async => true,
     ),
 );
 ```
@@ -231,8 +231,8 @@ StackBoard(
         if (t is CustomItem) {
             return ItemCase(
                 key: Key('StackBoardItem${t.id}'), // <==== must
-                isCenter: false,
-                onDel: () async => _boardController.remove(t.id),
+                isCentered: false,
+                onDelete: () async => _boardController.remove(t.id),
                 onTap: () => _boardController.moveItemToTop(t.id),
                 caseStyle: const CaseStyle(
                     borderColor: Colors.grey,
@@ -264,9 +264,9 @@ StackBoard(
 Stack(
     children: <Widget>[
         ItemCase(
-            isCenter: false,
+            isCentered: false,
             child: const Text('Custom case'),
-            onDel: () async {},
+            onDelete: () async {},
             onOffsetChanged: (Offset offset) {},
             onSizeChanged: (Size size) {},
         ),
