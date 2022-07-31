@@ -15,7 +15,7 @@ class AdaptiveTextCase extends StatefulWidget {
     required this.adaptiveText,
     this.onDelete,
     this.operationState,
-    this.onTap,
+    this.onPointerDown,
   }) : super(key: key);
 
   @override
@@ -28,7 +28,7 @@ class AdaptiveTextCase extends StatefulWidget {
   final void Function()? onDelete;
 
   /// 点击回调
-  final void Function()? onTap;
+  final void Function()? onPointerDown;
 
   /// 操作状态
   final OperationState? operationState;
@@ -63,7 +63,7 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
     return ItemCase(
       isCentered: false,
       isEditable: true,
-      onTap: widget.onTap,
+      onPointerDown: widget.onPointerDown,
       tapToEdit: widget.adaptiveText.tapToEdit,
       child: _isEditing ? _buildEditingBox : _buildTextBox,
       onDelete: widget.onDelete,

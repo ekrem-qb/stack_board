@@ -20,7 +20,6 @@ class StackBoard extends StatefulWidget {
     this.background,
     this.caseStyle = const CaseStyle(),
     this.customBuilder,
-    this.tapToCancelAllItems = false,
     this.tapItemToMoveToTop = true,
   }) : super(key: key);
 
@@ -39,9 +38,6 @@ class StackBoard extends StatefulWidget {
   /// 自定义类型控件构建器
   final Widget? Function(StackBoardItem item)? customBuilder;
 
-  /// 点击空白处取消全部选择（比较消耗性能，默认关闭）
-  final bool tapToCancelAllItems;
-
   /// 点击item移至顶层
   final bool tapItemToMoveToTop;
 }
@@ -49,6 +45,8 @@ class StackBoard extends StatefulWidget {
 class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
   /// 子控件列表
   late List<StackBoardItem> _children;
+
+  int? _focusedItemId;
 
   /// 当前item所用id
   int _lastId = 0;
@@ -81,7 +79,8 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
     ));
 
     _lastId++;
-    safeSetState(() {});
+
+    _unFocus(_children.last.id);
   }
 
   /// 移除指定id item
@@ -99,6 +98,8 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
     _children.removeWhere((StackBoardItem i) => i.id == id);
     _children.add(item);
 
+    _unFocus(id);
+
     safeSetState(() {});
   }
 
@@ -110,13 +111,12 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
   }
 
   /// 取消全部选中
-  void _unFocus() {
-    _operationState = OperationState.complete;
-    safeSetState(() {});
-    Future<void>.delayed(const Duration(milliseconds: 500), () {
-      _operationState = null;
+  void _unFocus(int? id) {
+    if (_focusedItemId == null) {
+      _focusedItemId = id;
+      _operationState = OperationState.complete;
       safeSetState(() {});
-    });
+    }
   }
 
   /// 删除动作
@@ -144,12 +144,7 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
         ],
       );
 
-    if (widget.tapToCancelAllItems) {
-      _child = GestureDetector(
-        onTap: _unFocus,
-        child: _child,
-      );
-    }
+    _focusedItemId = null;
 
     return _child;
   }
@@ -166,9 +161,10 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
             'Unknown item type, please use customBuilder to build it'),
       ),
       onDelete: () => _onDelete(item),
-      onTap: () => _moveItemToTop(item.id),
+      onPointerDown: () => _moveItemToTop(item.id),
       caseStyle: item.caseStyle,
-      operationState: _operationState,
+      operationState:
+          _focusedItemId == item.id ? OperationState.idle : _operationState,
     );
 
     if (item is AdaptiveText) {
@@ -176,25 +172,28 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
         key: _getKey(item.id),
         adaptiveText: item,
         onDelete: () => _onDelete(item),
-        onTap: () => _moveItemToTop(item.id),
-        operationState: _operationState,
+        onPointerDown: () => _moveItemToTop(item.id),
+        operationState:
+            _focusedItemId == item.id ? OperationState.idle : _operationState,
       );
     } else if (item is StackDrawing) {
       child = DrawingBoardCase(
         key: _getKey(item.id),
         stackDrawing: item,
         onDelete: () => _onDelete(item),
-        onTap: () => _moveItemToTop(item.id),
-        operationState: _operationState,
+        onPointerDown: () => _moveItemToTop(item.id),
+        operationState:
+            _focusedItemId == item.id ? OperationState.idle : _operationState,
       );
     } else {
       child = ItemCase(
         key: _getKey(item.id),
         child: item.child,
         onDelete: () => _onDelete(item),
-        onTap: () => _moveItemToTop(item.id),
+        onPointerDown: () => _moveItemToTop(item.id),
         caseStyle: item.caseStyle,
-        operationState: _operationState,
+        operationState:
+            _focusedItemId == item.id ? OperationState.idle : _operationState,
       );
 
       if (widget.customBuilder != null) {
@@ -248,5 +247,9 @@ class StackBoardController {
   /// 销毁
   void dispose() {
     _stackBoardState = null;
+  }
+
+  void unFocus([int? id]) {
+    _stackBoardState?._unFocus(id);
   }
 }

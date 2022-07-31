@@ -13,7 +13,7 @@ class DrawingBoardCase extends StatefulWidget {
     required this.stackDrawing,
     this.onDelete,
     this.operationState = OperationState.editing,
-    this.onTap,
+    this.onPointerDown,
   }) : super(key: key);
 
   @override
@@ -26,7 +26,7 @@ class DrawingBoardCase extends StatefulWidget {
   final void Function()? onDelete;
 
   /// 点击回调
-  final void Function()? onTap;
+  final void Function()? onPointerDown;
 
   /// 操作状态
   final OperationState? operationState;
@@ -93,7 +93,7 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
     return ItemCase(
       isCentered: false,
       isEditable: true,
-      onTap: widget.onTap,
+      onPointerDown: widget.onPointerDown,
       tapToEdit: widget.stackDrawing.tapToEdit,
       tools: _tools,
       operationState: _operationState,

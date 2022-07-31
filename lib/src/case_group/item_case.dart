@@ -50,7 +50,7 @@ class ItemCase extends StatefulWidget {
     this.onOperationStateChanged,
     this.onOffsetChanged,
     this.onAngleChanged,
-    this.onTap,
+    this.onPointerDown,
   }) : super(key: key);
 
   @override
@@ -81,7 +81,7 @@ class ItemCase extends StatefulWidget {
   final void Function()? onDelete;
 
   /// 点击回调
-  final void Function()? onTap;
+  final void Function()? onPointerDown;
 
   /// 尺寸变化回调
   /// 返回值可控制是否继续进行
@@ -134,7 +134,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 点击
-  void _onTap() {
+  void _onPointerDown() {
     if (widget.tapToEdit) {
       if (_operationState != OperationState.editing) {
         _operationState = OperationState.editing;
@@ -144,7 +144,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       safeSetState(() => _operationState = OperationState.idle);
     }
 
-    widget.onTap?.call();
+    widget.onPointerDown?.call();
     widget.onOperationStateChanged?.call(_operationState);
   }
 
@@ -340,24 +340,27 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       valueListenable: _config,
       child: MouseRegion(
         cursor: _cursor,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: _moveHandle,
-          onPanEnd: (_) => _changeToIdle(),
-          onTap: _onTap,
-          child: Stack(children: <Widget>[
-            _border,
-            _child,
-            if (widget.tools != null) _tools,
-            if (widget.isEditable && _operationState != OperationState.complete)
-              _edit,
-            if (_operationState != OperationState.complete) _rotate,
-            if (_operationState != OperationState.complete) _done,
-            if (widget.onDelete != null &&
-                _operationState != OperationState.complete)
-              _delete,
-            if (_operationState != OperationState.complete) _scale,
-          ]),
+        child: Listener(
+          onPointerDown: (_) => _onPointerDown(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: _moveHandle,
+            onPanEnd: (_) => _changeToIdle(),
+            child: Stack(children: <Widget>[
+              _border,
+              _child,
+              if (widget.tools != null) _tools,
+              if (widget.isEditable &&
+                  _operationState != OperationState.complete)
+                _edit,
+              if (_operationState != OperationState.complete) _rotate,
+              if (_operationState != OperationState.complete) _done,
+              if (widget.onDelete != null &&
+                  _operationState != OperationState.complete)
+                _delete,
+              if (_operationState != OperationState.complete) _scale,
+            ]),
+          ),
         ),
       ),
       builder: (_, _Config? c, Widget? child) {

@@ -41,7 +41,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: HomePage());
+    return MaterialApp(
+      theme: ThemeData(
+        brightness:
+            WidgetsBinding.instance.platformDispatcher.platformBrightness,
+      ),
+      home: const HomePage(),
+    );
   }
 }
 
@@ -110,142 +116,143 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        title: const Text('Stack Board Demo'),
-        elevation: 0,
-      ),
-      body: StackBoard(
-        controller: _boardController,
-
-        caseStyle: const CaseStyle(
-          borderColor: Colors.grey,
-          iconColor: Colors.white,
+    return Listener(
+      onPointerDown: (_) {
+        _boardController.unFocus();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          title: const Text('Stack Board Demo'),
         ),
+        body: StackBoard(
+          controller: _boardController,
+          caseStyle: const CaseStyle(
+            borderColor: Colors.grey,
+            iconColor: Colors.white,
+          ),
 
-        /// 背景
-        background: ColoredBox(color: Colors.grey[100]!),
+          /// 背景
+          // background: ColoredBox(color: Colors.grey[100]!),
 
-        /// 点击取消全部选中状态
-        /// tapToCancelAllItems: true,
+          /// 如果使用了继承于StackBoardItem的自定义item
+          /// 使用这个接口进行重构
+          customBuilder: (StackBoardItem t) {
+            if (t is CustomItem) {
+              return ItemCase(
+                key: Key('StackBoardItem${t.id}'), // <==== must
+                isCentered: false,
+                onDelete: () async => _boardController.remove(t.id),
+                onPointerDown: () => _boardController.moveItemToTop(t.id),
+                caseStyle: const CaseStyle(
+                  borderColor: Colors.grey,
+                  iconColor: Colors.white,
+                ),
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  color: t.color,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Custom item',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            }
 
-        /// 如果使用了继承于StackBoardItem的自定义item
-        /// 使用这个接口进行重构
-        customBuilder: (StackBoardItem t) {
-          if (t is CustomItem) {
-            return ItemCase(
-              key: Key('StackBoardItem${t.id}'), // <==== must
-              isCentered: false,
-              onDelete: () async => _boardController.remove(t.id),
-              onTap: () => _boardController.moveItemToTop(t.id),
-              caseStyle: const CaseStyle(
-                borderColor: Colors.grey,
-                iconColor: Colors.white,
-              ),
-              child: Container(
-                width: 100,
-                height: 100,
-                color: t.color,
-                alignment: Alignment.center,
-                child: const Text(
-                  'Custom item',
-                  style: TextStyle(color: Colors.white),
+            return null;
+          },
+        ),
+        floatingActionButton: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: <Widget>[
+                    const SizedBox(width: 25),
+                    FloatingActionButton(
+                      onPressed: () {
+                        _boardController.add(
+                          const AdaptiveText(
+                            'Flutter Candies',
+                            tapToEdit: true,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.border_color),
+                    ),
+                    _spacer,
+                    FloatingActionButton(
+                      onPressed: () {
+                        _boardController.add(
+                          StackBoardItem(
+                            child: Image.network(
+                                'https://avatars.githubusercontent.com/u/47586449?s=200&v=4'),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.image),
+                    ),
+                    _spacer,
+                    FloatingActionButton(
+                      onPressed: () {
+                        _boardController.add(
+                          const StackDrawing(
+                            caseStyle: CaseStyle(
+                              borderColor: Colors.grey,
+                              iconColor: Colors.white,
+                              boxAspectRatio: 1,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.color_lens),
+                    ),
+                    _spacer,
+                    FloatingActionButton(
+                      onPressed: () {
+                        _boardController.add(
+                          StackBoardItem(
+                            child: const Text(
+                              'Custom Widget',
+                              style: TextStyle(color: Colors.black),
+                            ),
+                            onDelete: _onDel,
+                            // caseStyle: const CaseStyle(initOffset: Offset(100, 100)),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.add_box),
+                    ),
+                    _spacer,
+                    FloatingActionButton(
+                      onPressed: () {
+                        _boardController.add<CustomItem>(
+                          CustomItem(
+                            color: Color((math.Random().nextDouble() * 0xFFFFFF)
+                                    .toInt())
+                                .withOpacity(1.0),
+                            onDelete: () async => true,
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.add),
+                    ),
+                  ],
                 ),
               ),
-            );
-          }
-
-          return null;
-        },
-      ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Flexible(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: <Widget>[
-                  const SizedBox(width: 25),
-                  FloatingActionButton(
-                    onPressed: () {
-                      _boardController.add(
-                        const AdaptiveText(
-                          'Flutter Candies',
-                          tapToEdit: true,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.border_color),
-                  ),
-                  _spacer,
-                  FloatingActionButton(
-                    onPressed: () {
-                      _boardController.add(
-                        StackBoardItem(
-                          child: Image.network(
-                              'https://avatars.githubusercontent.com/u/47586449?s=200&v=4'),
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.image),
-                  ),
-                  _spacer,
-                  FloatingActionButton(
-                    onPressed: () {
-                      _boardController.add(
-                        const StackDrawing(
-                          caseStyle: CaseStyle(
-                            borderColor: Colors.grey,
-                            iconColor: Colors.white,
-                            boxAspectRatio: 1,
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.color_lens),
-                  ),
-                  _spacer,
-                  FloatingActionButton(
-                    onPressed: () {
-                      _boardController.add(
-                        StackBoardItem(
-                          child: const Text(
-                            'Custom Widget',
-                            style: TextStyle(color: Colors.black),
-                          ),
-                          onDelete: _onDel,
-                          // caseStyle: const CaseStyle(initOffset: Offset(100, 100)),
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.add_box),
-                  ),
-                  _spacer,
-                  FloatingActionButton(
-                    onPressed: () {
-                      _boardController.add<CustomItem>(
-                        CustomItem(
-                          color: Color((math.Random().nextDouble() * 0xFFFFFF)
-                                  .toInt())
-                              .withOpacity(1.0),
-                          onDelete: () async => true,
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.add),
-                  ),
-                ],
-              ),
             ),
-          ),
-          FloatingActionButton(
-            onPressed: () => _boardController.clear(),
-            child: const Icon(Icons.close),
-          ),
-        ],
+            FloatingActionButton(
+              onPressed: () => _boardController.clear(),
+              child: const Icon(Icons.close),
+            ),
+          ],
+        ),
       ),
     );
   }
