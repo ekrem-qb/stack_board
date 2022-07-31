@@ -159,7 +159,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 移动操作
-  void _moveHandle(DragUpdateDetails dud) {
+  void _moveHandle(DragUpdateDetails dragUpdateDetails) {
     if (_operationState != OperationState.moving) {
       if (_operationState == OperationState.scaling ||
           _operationState == OperationState.rotating) {
@@ -175,7 +175,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     final double angle = _config.value.angle ?? 0;
     final double sina = math.sin(-angle);
     final double cosa = math.cos(-angle);
-    Offset d = dud.delta;
+    Offset d = dragUpdateDetails.delta;
     final Offset changeTo =
         _config.value.offset?.translate(d.dx, d.dy) ?? Offset.zero;
 
@@ -194,7 +194,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 缩放操作
-  void _scaleHandle(DragUpdateDetails dud) {
+  void _scaleHandle(DragUpdateDetails dragUpdateDetails) {
     if (_operationState != OperationState.scaling) {
       if (_operationState == OperationState.moving ||
           _operationState == OperationState.rotating) {
@@ -216,8 +216,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     // final double sina = math.sin(angle);
     // final double cosa = math.cos(angle);
 
-    // final Offset d = dud.delta;
-    final Offset d = dud.globalPosition;
+    // final Offset d = dragUpdateDetails.delta;
+    final Offset d = dragUpdateDetails.globalPosition;
     // d = Offset(fsina * d.dy + fcosa * d.dx, fcosa * d.dy - fsina * d.dx);
 
     // print('delta:$d');
@@ -264,7 +264,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 旋转操作
-  void _rotateHandle(DragUpdateDetails dud) {
+  void _rotateHandle(DragUpdateDetails dragUpdateDetails) {
     if (_operationState != OperationState.rotating) {
       if (_operationState == OperationState.moving ||
           _operationState == OperationState.scaling) {
@@ -281,7 +281,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     if (_config.value.offset == null) return;
 
     final Offset start = _config.value.offset!;
-    final Offset global = dud.globalPosition.translate(
+    final Offset global = dragUpdateDetails.globalPosition.translate(
       _caseStyle.iconSize / 2,
       -_caseStyle.iconSize * 2.5,
     );
@@ -311,7 +311,11 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     //旋转拦截
     if (!(widget.onAngleChanged?.call(angle) ?? true)) return;
 
-    _config.value = _config.value.copy(angle: angle);
+    final double roundedAngle = (angle / (math.pi / 4)).round() * (math.pi / 4);
+    final bool isNearToSnap = (angle - roundedAngle).abs() < 0.1;
+
+    _config.value =
+        _config.value.copy(angle: isNearToSnap ? roundedAngle : angle);
   }
 
   /// 旋转回0度
