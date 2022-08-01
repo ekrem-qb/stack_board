@@ -378,7 +378,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
                     _operationState != OperationState.complete)
                   _edit,
                 if (_operationState != OperationState.complete) _rotate,
-                if (_operationState != OperationState.complete) _done,
                 if (widget.onDelete != null &&
                     _operationState != OperationState.complete)
                   _delete,
@@ -516,27 +515,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
               child: Icon(Icons.refresh),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  /// 完成操作
-  Widget get _done {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: () {
-            if (_operationState != OperationState.complete) {
-              _operationState = OperationState.complete;
-              safeSetState(() {});
-              widget.onOperationStateChanged?.call(_operationState);
-            }
-          },
-          child: _toolCase(const Icon(Icons.check)),
         ),
       ),
     );
