@@ -206,7 +206,6 @@ class _HomePageState extends State<HomePage> {
                             caseStyle: CaseStyle(
                               borderColor: Colors.grey,
                               iconColor: Colors.white,
-                              boxAspectRatio: 1,
                             ),
                           ),
                         );

@@ -7,7 +7,6 @@ class CaseStyle {
     this.borderWidth = 1,
     this.iconColor,
     this.iconSize = 24,
-    this.boxAspectRatio,
     this.initOffset = Offset.zero,
   });
 
@@ -22,10 +21,6 @@ class CaseStyle {
 
   /// 图标大小
   final double iconSize;
-
-  /// * 边框比例
-  /// * if(boxAspectRatio!=null) 缩放变换将固定比例
-  final double? boxAspectRatio;
 
   /// 外框初始位置
   final Offset initOffset;

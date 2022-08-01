@@ -104,6 +104,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   /// 操作状态
   late OperationState _operationState;
 
+  late final double? _aspectRatio;
+
   /// 外框样式
   CaseStyle get _caseStyle => widget.caseStyle ?? const CaseStyle();
 
@@ -113,6 +115,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config.def());
     _config.value.offset = widget.caseStyle?.initOffset;
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _aspectRatio = context.size?.aspectRatio);
   }
 
   @override
@@ -217,7 +221,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     // final double cosa = math.cos(angle);
 
     // final Offset d = dragUpdateDetails.delta;
-    final Offset d = dragUpdateDetails.globalPosition;
+    final Offset delta = dragUpdateDetails.globalPosition;
     // d = Offset(fsina * d.dy + fcosa * d.dx, fcosa * d.dy - fsina * d.dx);
 
     // print('delta:$d');
@@ -233,31 +237,29 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     start = Offset(fsina * start.dy + fcosa * start.dx,
         fcosa * start.dy - fsina * start.dx);
 
-    double w = d.dx - start.dx;
-    double h = d.dy - start.dy;
+    double width = delta.dx - start.dx;
+    double height = delta.dy - start.dy;
 
     //达到极小值
-    if (w < min) w = min;
-    if (h < min) h = min;
+    if (width < min) width = min;
+    if (height < min) height = min;
 
-    Size s = Size(w, h);
+    Size size = Size(width, height);
 
-    if (d.dx < 0 && s.width < min) s = Size(min, h);
-    if (d.dy < 0 && s.height < min) s = Size(w, min);
+    if (delta.dx < 0 && size.width < min) size = Size(min, height);
+    if (delta.dy < 0 && size.height < min) size = Size(width, min);
 
     //缩放拦截
-    if (!(widget.onSizeChanged?.call(s) ?? true)) return;
+    if (!(widget.onSizeChanged?.call(size) ?? true)) return;
 
-    if (widget.caseStyle?.boxAspectRatio != null) {
-      if (s.width < s.height) {
-        _config.value.size =
-            Size(s.width, s.width / widget.caseStyle!.boxAspectRatio!);
+    if (_aspectRatio != null) {
+      if (size.width < size.height) {
+        _config.value.size = Size(size.width, size.width / _aspectRatio!);
       } else {
-        _config.value.size =
-            Size(s.height * widget.caseStyle!.boxAspectRatio!, s.height);
+        _config.value.size = Size(size.height * _aspectRatio!, size.height);
       }
     } else {
-      _config.value.size = s;
+      _config.value.size = size;
     }
 
     _config.value = _config.value.copy();
