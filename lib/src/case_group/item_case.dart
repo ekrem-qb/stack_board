@@ -179,14 +179,16 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     final double angle = _config.value.angle ?? 0;
     final double sina = math.sin(-angle);
     final double cosa = math.cos(-angle);
-    Offset d = dragUpdateDetails.delta;
+    Offset delta = dragUpdateDetails.delta;
     final Offset changeTo =
-        _config.value.offset?.translate(d.dx, d.dy) ?? Offset.zero;
+        _config.value.offset?.translate(delta.dx, delta.dy) ?? Offset.zero;
 
     //向量旋转
-    d = Offset(sina * d.dy + cosa * d.dx, cosa * d.dy - sina * d.dx);
+    delta = Offset(
+        sina * delta.dy + cosa * delta.dx, cosa * delta.dy - sina * delta.dx);
 
-    final Offset? realOffset = _config.value.offset?.translate(d.dx, d.dy);
+    final Offset? realOffset =
+        _config.value.offset?.translate(delta.dx, delta.dy);
     if (realOffset == null) return;
 
     //移动拦截
@@ -341,9 +343,23 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   @override
   Widget build(BuildContext context) {
     return ExValueBuilder<_Config>(
-      shouldRebuild: (_Config? p, _Config? n) =>
-          p?.offset != n?.offset || p?.angle != n?.angle,
+      shouldRebuild: (_Config? previousConfig, _Config? newConfig) =>
+          previousConfig?.offset != newConfig?.offset ||
+          previousConfig?.angle != newConfig?.angle ||
+          previousConfig?.size != newConfig?.size,
       valueListenable: _config,
+      builder: (_, _Config? config, Widget? child) {
+        return Positioned(
+          top: config?.offset?.dy,
+          left: config?.offset?.dx,
+          width: config?.size?.width,
+          height: config?.size?.height,
+          child: Transform.rotate(
+            angle: config?.angle ?? 0,
+            child: child,
+          ),
+        );
+      },
       child: MouseRegion(
         cursor: _cursor,
         child: Listener(
@@ -352,33 +368,26 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
             behavior: HitTestBehavior.opaque,
             onPanUpdate: _moveHandle,
             onPanEnd: (_) => _changeToIdle(),
-            child: Stack(children: <Widget>[
-              _border,
-              _child,
-              if (widget.tools != null) _tools,
-              if (widget.isEditable &&
-                  _operationState != OperationState.complete)
-                _edit,
-              if (_operationState != OperationState.complete) _rotate,
-              if (_operationState != OperationState.complete) _done,
-              if (widget.onDelete != null &&
-                  _operationState != OperationState.complete)
-                _delete,
-              if (_operationState != OperationState.complete) _scale,
-            ]),
+            child: Stack(
+              fit: StackFit.passthrough,
+              children: <Widget>[
+                _border,
+                _child,
+                if (widget.tools != null) _tools,
+                if (widget.isEditable &&
+                    _operationState != OperationState.complete)
+                  _edit,
+                if (_operationState != OperationState.complete) _rotate,
+                if (_operationState != OperationState.complete) _done,
+                if (widget.onDelete != null &&
+                    _operationState != OperationState.complete)
+                  _delete,
+                if (_operationState != OperationState.complete) _scale,
+              ],
+            ),
           ),
         ),
       ),
-      builder: (_, _Config? c, Widget? child) {
-        return Positioned(
-          top: c?.offset?.dy ?? 0,
-          left: c?.offset?.dx ?? 0,
-          child: Transform.rotate(
-            angle: c?.angle ?? 0,
-            child: child,
-          ),
-        );
-      },
     );
   }
 
@@ -400,19 +409,9 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
     if (widget.isCentered) content = Center(child: content);
 
-    return ExValueBuilder<_Config>(
-      shouldRebuild: (_Config? p, _Config? n) => p?.size != n?.size,
-      valueListenable: _config,
-      child: Padding(
-        padding: EdgeInsets.all(_caseStyle.iconSize / 2),
-        child: content,
-      ),
-      builder: (_, _Config? c, Widget? child) {
-        return SizedBox.fromSize(
-          size: c?.size,
-          child: child,
-        );
-      },
+    return Padding(
+      padding: EdgeInsets.all(_caseStyle.iconSize / 2),
+      child: content,
     );
   }
 
@@ -438,22 +437,26 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 编辑手柄
   Widget get _edit {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          if (_operationState == OperationState.editing) {
-            _operationState = OperationState.idle;
-          } else {
-            _operationState = OperationState.editing;
-          }
-          safeSetState(() {});
-          widget.onOperationStateChanged?.call(_operationState);
-        },
-        child: _toolCase(
-          Icon(_operationState == OperationState.editing
-              ? Icons.border_color
-              : Icons.edit),
+    return Positioned(
+      top: 0,
+      left: 0,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () {
+            if (_operationState == OperationState.editing) {
+              _operationState = OperationState.idle;
+            } else {
+              _operationState = OperationState.editing;
+            }
+            safeSetState(() {});
+            widget.onOperationStateChanged?.call(_operationState);
+          },
+          child: _toolCase(
+            Icon(_operationState == OperationState.editing
+                ? Icons.border_color
+                : Icons.edit),
+          ),
         ),
       ),
     );
