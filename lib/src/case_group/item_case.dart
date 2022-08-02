@@ -104,8 +104,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   /// 操作状态
   late OperationState _operationState;
 
-  late final double? _aspectRatio;
-
   /// 外框样式
   CaseStyle get _caseStyle => widget.caseStyle ?? const CaseStyle();
 
@@ -115,8 +113,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config.def());
     _config.value.offset = widget.caseStyle?.initOffset;
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _aspectRatio = context.size?.aspectRatio);
   }
 
   @override
@@ -216,53 +212,37 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     if (_config.value.offset == null) return;
     if (_config.value.size == null) return;
 
-    final double angle = _config.value.angle ?? 0;
-    final double fsina = math.sin(-angle);
-    final double fcosa = math.cos(-angle);
-    // final double sina = math.sin(angle);
-    // final double cosa = math.cos(angle);
+    final double delta =
+        (dragUpdateDetails.delta.dx + dragUpdateDetails.delta.dy) / 2;
 
-    // final Offset d = dragUpdateDetails.delta;
-    final Offset delta = dragUpdateDetails.globalPosition;
-    // d = Offset(fsina * d.dy + fcosa * d.dx, fcosa * d.dy - fsina * d.dx);
+    double newWidth = _config.value.size!.width + (delta * 2);
+    double newHeight = _config.value.size!.height + (delta * 2);
 
-    // print('delta:$d');
-
-    // final Size size = _config.value.size!;
-    // double w = size.width + d.dx;
-    // double h = size.height + d.dy;
+    double newOffsetX = _config.value.offset!.dx;
+    double newOffsetY = _config.value.offset!.dy;
 
     final double min = _caseStyle.iconSize * 3;
 
-    Offset start = _config.value.offset! +
-        Offset(-_caseStyle.iconSize / 2, _caseStyle.iconSize * 2);
-    start = Offset(fsina * start.dy + fcosa * start.dx,
-        fcosa * start.dy - fsina * start.dx);
+    if (newWidth < min) {
+      newWidth = min;
+    } else {
+      newOffsetX -= delta;
+    }
+    if (newHeight < min) {
+      newHeight = min;
+    } else {
+      newOffsetY -= delta;
+    }
 
-    double width = delta.dx - start.dx;
-    double height = delta.dy - start.dy;
-
-    //达到极小值
-    if (width < min) width = min;
-    if (height < min) height = min;
-
-    Size size = Size(width, height);
-
-    if (delta.dx < 0 && size.width < min) size = Size(min, height);
-    if (delta.dy < 0 && size.height < min) size = Size(width, min);
+    _config.value.size = Size(newWidth, newHeight);
 
     //缩放拦截
-    if (!(widget.onSizeChanged?.call(size) ?? true)) return;
+    if (!(widget.onSizeChanged?.call(_config.value.size!) ?? true)) return;
 
-    if (_aspectRatio != null) {
-      if (size.width < size.height) {
-        _config.value.size = Size(size.width, size.width / _aspectRatio!);
-      } else {
-        _config.value.size = Size(size.height * _aspectRatio!, size.height);
-      }
-    } else {
-      _config.value.size = size;
-    }
+    _config.value.offset = Offset(newOffsetX, newOffsetY);
+
+    // //移动拦截
+    if (!(widget.onOffsetChanged?.call(_config.value.offset!) ?? true)) return;
 
     _config.value = _config.value.copy();
   }
