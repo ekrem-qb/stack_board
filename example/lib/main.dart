@@ -192,7 +192,10 @@ class _HomePageState extends State<HomePage> {
                         _boardController.add(
                           StackBoardItem(
                             child: Image.network(
-                                'https://avatars.githubusercontent.com/u/47586449?s=200&v=4'),
+                              'https://avatars.githubusercontent.com/u/47586449?s=200&v=4',
+                              width: 200,
+                              height: 200,
+                            ),
                           ),
                         );
                       },

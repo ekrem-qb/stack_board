@@ -223,15 +223,16 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     double newOffsetY = _config.value.offset!.dy;
 
     final double min = _caseStyle.iconSize * 3;
+    final double max = MediaQuery.of(context).size.longestSide;
 
-    if (newWidth < min) {
-      newWidth = min;
+    if (newWidth <= min ||
+        newHeight <= min ||
+        newWidth >= max ||
+        newHeight >= max) {
+      newWidth = _config.value.size!.width;
+      newHeight = _config.value.size!.height;
     } else {
       newOffsetX -= delta;
-    }
-    if (newHeight < min) {
-      newHeight = min;
-    } else {
       newOffsetY -= delta;
     }
 
