@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_drawing_board/flutter_drawing_board.dart';
 import 'package:stack_board/src/helper/case_style.dart';
 import 'package:stack_board/src/helper/operat_state.dart';
+import 'package:vector_math/vector_math.dart' hide Colors;
 
 /// 配置项
 class _Config {
@@ -265,32 +266,14 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     if (_config.value.offset == null) return;
 
     final Offset start = _config.value.offset!;
-    final Offset global = dragUpdateDetails.globalPosition.translate(
-      _caseStyle.iconSize / 2,
-      -_caseStyle.iconSize * 2.5,
-    );
+    final Offset global = dragUpdateDetails.globalPosition
+        .translate(0, -_caseStyle.iconSize * 2.5);
     final Size size = _config.value.size!;
     final Offset center =
         Offset(start.dx + size.width / 2, start.dy + size.height / 2);
-    final double l = (global - center).distance;
-    final double s = (global.dy - center.dy).abs();
+    final Offset direction = global - center;
 
-    double angle = math.asin(s / l);
-
-    if (global.dx < center.dx) {
-      if (global.dy < center.dy) {
-        angle = math.pi + angle;
-        // print('第四象限');
-      } else {
-        angle = math.pi - angle;
-        // print('第三象限');
-      }
-    } else {
-      if (global.dy < center.dy) {
-        angle = 2 * math.pi - angle;
-        // print('第一象限');
-      }
-    }
+    final double angle = math.atan2(direction.dy, direction.dx) + radians(135);
 
     //旋转拦截
     if (!(widget.onAngleChanged?.call(angle) ?? true)) return;
@@ -417,7 +400,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   /// 编辑手柄
   Widget get _edit {
     return Positioned(
-      top: 0,
+      bottom: 0,
       left: 0,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
@@ -481,8 +464,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   Widget get _rotate {
     return Positioned(
       top: 0,
-      bottom: 0,
-      right: 0,
+      left: 0,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
@@ -490,10 +472,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
           onPanEnd: (_) => _changeToIdle(),
           onDoubleTap: _turnBack,
           child: _toolCase(
-            const RotatedBox(
-              quarterTurns: 1,
-              child: Icon(Icons.refresh),
-            ),
+            const Icon(Icons.refresh),
           ),
         ),
       ),
