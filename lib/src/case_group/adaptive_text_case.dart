@@ -45,6 +45,8 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
   /// 输入框宽度
   double _textFieldWidth = 100;
 
+  final FocusNode _focusNode = FocusNode();
+
   /// 文本样式
   TextStyle get _style => widget.adaptiveText.style ?? _defaultStyle;
 
@@ -65,7 +67,7 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
       isEditable: true,
       onPointerDown: widget.onPointerDown,
       tapToEdit: widget.adaptiveText.tapToEdit,
-      child: _isEditing ? _buildEditingBox : _buildTextBox,
+      child: _buildEditingBox,
       onDelete: widget.onDelete,
       operationState: widget.operationState,
       caseStyle: widget.adaptiveText.caseStyle,
@@ -73,7 +75,11 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
         if (s != OperationState.editing && _isEditing) {
           safeSetState(() => _isEditing = false);
         } else if (s == OperationState.editing && !_isEditing) {
-          safeSetState(() => _isEditing = true);
+          safeSetState(() {
+            _isEditing = true;
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _focusNode.requestFocus());
+          });
         }
 
         return;
@@ -87,25 +93,11 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
     );
   }
 
-  /// 仅文本
-  Widget get _buildTextBox {
-    return FittedBox(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Text(
-          _text,
-          style: _style,
-          textAlign: widget.adaptiveText.textAlign,
-          textDirection: widget.adaptiveText.textDirection,
-          locale: widget.adaptiveText.locale,
-          softWrap: widget.adaptiveText.softWrap,
-          overflow: widget.adaptiveText.overflow,
-          textScaleFactor: widget.adaptiveText.textScaleFactor,
-          maxLines: widget.adaptiveText.maxLines,
-          semanticsLabel: widget.adaptiveText.semanticsLabel,
-        ),
-      ),
-    );
+  @override
+  void dispose() {
+    _focusNode.dispose();
+
+    super.dispose();
   }
 
   /// 正在编辑
@@ -116,11 +108,13 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
         child: SizedBox(
           width: _textFieldWidth,
           child: TextFormField(
-            autofocus: true,
+            enabled: _isEditing,
+            focusNode: _focusNode,
+            decoration: const InputDecoration(border: InputBorder.none),
             initialValue: _text,
             onChanged: (String newText) => _text = newText,
             style: _style,
-            textAlign: widget.adaptiveText.textAlign ?? TextAlign.start,
+            textAlign: widget.adaptiveText.textAlign ?? TextAlign.center,
             textDirection: widget.adaptiveText.textDirection,
             maxLines: widget.adaptiveText.maxLines,
           ),

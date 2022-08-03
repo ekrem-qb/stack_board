@@ -179,7 +179,6 @@ class _HomePageState extends State<HomePage> {
                         _boardController.add(
                           const AdaptiveText(
                             'Flutter Candies',
-                            tapToEdit: true,
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         );
