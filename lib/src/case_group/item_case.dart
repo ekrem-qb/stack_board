@@ -36,7 +36,7 @@ class ItemCase extends StatefulWidget {
   ItemCase({
     Key? key,
     required this.child,
-    this.isCentered = true,
+    this.isCentered = false,
     this.tools,
     this.caseStyle = const CaseStyle(),
     this.tapToEdit = false,
@@ -361,7 +361,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
             child: Stack(
               fit: StackFit.passthrough,
               children: <Widget>[
-                _border,
+                if (_operationState != OperationState.complete) _border,
                 _child,
                 if (widget.tools != null) _tools,
                 if (widget.isEditable &&
@@ -411,9 +411,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: _operationState == OperationState.complete
-                ? Colors.transparent
-                : _caseStyle.borderColor,
+            color: _caseStyle.borderColor,
             width: _caseStyle.borderWidth,
           ),
         ),
@@ -506,19 +504,21 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 操作手柄壳
   Widget _toolCase(Widget child) {
-    return Container(
+    return SizedBox(
       width: _caseStyle.iconSize,
       height: _caseStyle.iconSize,
-      child: IconTheme(
-        data: Theme.of(context).iconTheme.copyWith(
-              color: _caseStyle.iconColor,
-              size: _caseStyle.iconSize * 0.6,
-            ),
-        child: child,
-      ),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: _caseStyle.borderColor,
+      child: DecoratedBox(
+        child: IconTheme(
+          data: Theme.of(context).iconTheme.copyWith(
+                color: _caseStyle.iconColor,
+                size: _caseStyle.iconSize * 0.6,
+              ),
+          child: child,
+        ),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _caseStyle.borderColor,
+        ),
       ),
     );
   }
