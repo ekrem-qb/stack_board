@@ -285,14 +285,17 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     if (_config.value.offset == null) return;
 
     final Offset start = _config.value.offset!;
-    final Offset global = dragUpdateDetails.globalPosition
+    final Offset pointer = dragUpdateDetails.globalPosition
         .translate(0, -_caseStyle.iconSize * 2.5);
     final Size size = _config.value.size!;
     final Offset center =
         Offset(start.dx + size.width / 2, start.dy + size.height / 2);
-    final Offset direction = global - center;
+    final Offset directionToPointer = pointer - center;
+    final Offset directionToHandle = start - center;
 
-    final double angle = math.atan2(direction.dy, direction.dx) + radians(135);
+    final double angle =
+        math.atan2(directionToPointer.dy, directionToPointer.dx) -
+            math.atan2(directionToHandle.dy, directionToHandle.dx);
 
     //旋转拦截
     if (!(widget.onAngleChanged?.call(angle) ?? true)) return;
