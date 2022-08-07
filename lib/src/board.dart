@@ -8,6 +8,7 @@ import 'case_group/adaptive_text_case.dart';
 import 'case_group/drawing_board_case.dart';
 import 'case_group/item_case.dart';
 import 'helper/case_style.dart';
+import 'helper/center_guides.dart';
 import 'item_group/adaptive_text.dart';
 import 'item_group/stack_board_item.dart';
 import 'item_group/stack_drawing.dart';
@@ -21,6 +22,7 @@ class StackBoard extends StatefulWidget {
     this.caseStyle = const CaseStyle(),
     this.customBuilder,
     this.tapItemToMoveToTop = true,
+    this.enableCenterGuides = true,
   }) : super(key: key);
 
   @override
@@ -31,6 +33,8 @@ class StackBoard extends StatefulWidget {
 
   /// 背景
   final Widget? background;
+
+  final bool enableCenterGuides;
 
   /// 操作框样式
   final CaseStyle? caseStyle;
@@ -53,6 +57,9 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
 
   /// 所有item的操作状态
   OperationState? _operationState;
+
+  final CenterGuidesController _centerGuidesController =
+      CenterGuidesController();
 
   /// 生成唯一Key
   Key _getKey(int? id) => Key('StackBoardItem$id');
@@ -132,6 +139,10 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
       children: <Widget>[
         if (widget.background != null) widget.background!,
         ..._children.map((StackBoardItem box) => _buildItem(box)).toList(),
+        if (widget.enableCenterGuides)
+          CenterGuides(
+            controller: _centerGuidesController,
+          ),
       ],
     );
 
@@ -195,6 +206,12 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
 
     return child;
   }
+
+  @override
+  void dispose() {
+    _centerGuidesController.dispose();
+    super.dispose();
+  }
 }
 
 /// 控制器
@@ -243,4 +260,10 @@ class StackBoardController {
   void unFocus([int? id]) {
     _stackBoardState?._unFocus(id);
   }
+
+  void toggleCenterGuides({bool? newVerticalState, bool? newHorizontalState}) =>
+      _stackBoardState?._centerGuidesController.toggleGuides(
+        newVerticalState: newVerticalState,
+        newHorizontalState: newHorizontalState,
+      );
 }

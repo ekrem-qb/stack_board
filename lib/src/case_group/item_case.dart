@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_drawing_board/flutter_drawing_board.dart';
+import 'package:stack_board/src/board.dart';
 import 'package:stack_board/src/helper/case_style.dart';
 import 'package:stack_board/src/helper/operat_state.dart';
 
@@ -119,6 +120,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   late Offset movingStartPosition;
   late Offset movingStartOffset;
 
+  late StackBoardController? _boardController;
+
   @override
   void initState() {
     super.initState();
@@ -142,6 +145,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _recalculateCenter();
     });
+    _boardController =
+        context.findAncestorWidgetOfExactType<StackBoard>()?.controller;
   }
 
   @override
@@ -229,9 +234,15 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
     if ((newOffset.dx - center.dx).abs() < moveSnappingTreshold) {
       newOffset = Offset(center.dx, newOffset.dy);
+      _boardController?.toggleCenterGuides(newVerticalState: true);
+    } else {
+      _boardController?.toggleCenterGuides(newVerticalState: false);
     }
     if ((newOffset.dy - center.dy).abs() < moveSnappingTreshold) {
       newOffset = Offset(newOffset.dx, center.dy);
+      _boardController?.toggleCenterGuides(newHorizontalState: true);
+    } else {
+      _boardController?.toggleCenterGuides(newHorizontalState: false);
     }
 
     //移动拦截
@@ -383,7 +394,13 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
             behavior: HitTestBehavior.opaque,
             onPanStart: _movingStart,
             onPanUpdate: _moveHandle,
-            onPanEnd: (_) => _changeToIdle(),
+            onPanEnd: (_) {
+              _changeToIdle();
+              _boardController?.toggleCenterGuides(
+                newVerticalState: false,
+                newHorizontalState: false,
+              );
+            },
             child: Stack(
               fit: StackFit.passthrough,
               children: <Widget>[
