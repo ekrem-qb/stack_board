@@ -4,23 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_drawing_board/flutter_drawing_board.dart';
 import 'package:stack_board/src/helper/case_style.dart';
 import 'package:stack_board/src/helper/operat_state.dart';
-import 'package:vector_math/vector_math.dart' hide Colors;
 
 /// 配置项
 class _Config {
-  _Config({this.size, this.offset, this.angle});
-
-  /// 默认配置
-  _Config.def({this.offset = Offset.zero, this.angle = 0});
+  _Config({this.size, this.offset = Offset.zero, this.angle = 0});
 
   /// 尺寸
   Size? size;
 
   /// 位置
-  Offset? offset;
+  Offset offset;
 
   /// 角度
-  double? angle;
+  double angle;
 
   /// 拷贝
   _Config copy({
@@ -116,12 +112,18 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   /// 外框样式
   CaseStyle get _caseStyle => widget.caseStyle ?? const CaseStyle();
 
+  late final double minWidthAndHeight;
+  late double maxWidthAndHeight;
+
   @override
   void initState() {
     super.initState();
     _operationState = widget.operationState ?? OperationState.idle;
-    _config = SafeValueNotifier<_Config>(_Config.def());
+    _config = SafeValueNotifier<_Config>(_Config());
     widget.state = this;
+
+    minWidthAndHeight = _caseStyle.iconSize * 2;
+
     final Offset ownerCenter = context
             .findAncestorRenderObjectOfType<RenderObject>()
             ?.paintBounds
@@ -132,6 +134,12 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       final Offset center = context.size?.center(Offset.zero) ?? Offset.zero;
       _config.value.offset = ownerCenter - center;
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    maxWidthAndHeight = MediaQuery.of(context).size.longestSide;
   }
 
   @override
@@ -192,27 +200,21 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       widget.onOperationStateChanged?.call(_operationState);
     }
 
-    final double angle = _config.value.angle ?? 0;
+    final double angle = _config.value.angle;
     final double sina = math.sin(-angle);
     final double cosa = math.cos(-angle);
     Offset delta = dragUpdateDetails.delta;
-    final Offset changeTo =
-        _config.value.offset?.translate(delta.dx, delta.dy) ?? Offset.zero;
 
     //向量旋转
     delta = Offset(
         sina * delta.dy + cosa * delta.dx, cosa * delta.dy - sina * delta.dx);
 
-    final Offset? realOffset =
-        _config.value.offset?.translate(delta.dx, delta.dy);
-    if (realOffset == null) return;
+    final Offset newOffset = _config.value.offset + delta;
 
     //移动拦截
-    if (!(widget.onOffsetChanged?.call(realOffset) ?? true)) return;
+    if (!(widget.onOffsetChanged?.call(newOffset) ?? true)) return;
 
-    _config.value = _config.value.copy(offset: realOffset);
-
-    widget.onOffsetChanged?.call(changeTo);
+    _config.value = _config.value.copy(offset: newOffset);
   }
 
   /// 缩放操作
@@ -235,7 +237,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       }
     }
 
-    if (_config.value.offset == null) return;
     if (_config.value.size == null) return;
 
     if (keepAspectRatio) {
@@ -246,16 +247,13 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     double newWidth = _config.value.size!.width + (scaleOffset.dx * 2);
     double newHeight = _config.value.size!.height + (scaleOffset.dy * 2);
 
-    double newOffsetX = _config.value.offset!.dx;
-    double newOffsetY = _config.value.offset!.dy;
+    double newOffsetX = _config.value.offset.dx;
+    double newOffsetY = _config.value.offset.dy;
 
-    final double min = _caseStyle.iconSize * 2;
-    final double max = MediaQuery.of(context).size.longestSide;
-
-    if (newWidth <= min ||
-        newHeight <= min ||
-        newWidth >= max ||
-        newHeight >= max) {
+    if (newWidth <= minWidthAndHeight ||
+        newHeight <= minWidthAndHeight ||
+        newWidth >= maxWidthAndHeight ||
+        newHeight >= maxWidthAndHeight) {
       newWidth = _config.value.size!.width;
       newHeight = _config.value.size!.height;
     } else {
@@ -271,7 +269,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     _config.value.offset = Offset(newOffsetX, newOffsetY);
 
     // //移动拦截
-    if (!(widget.onOffsetChanged?.call(_config.value.offset!) ?? true)) return;
+    if (!(widget.onOffsetChanged?.call(_config.value.offset) ?? true)) return;
 
     _config.value = _config.value.copy();
   }
@@ -291,9 +289,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     }
 
     if (_config.value.size == null) return;
-    if (_config.value.offset == null) return;
 
-    final Offset start = _config.value.offset!;
+    final Offset start = _config.value.offset;
     final Offset pointer = dragUpdateDetails.globalPosition
         .translate(0, -_caseStyle.iconSize * 2.5);
     final Size size = _config.value.size!;
@@ -343,8 +340,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       valueListenable: _config,
       builder: (_, _Config? config, Widget? child) {
         return Positioned(
-          top: config?.offset?.dy,
-          left: config?.offset?.dx,
+          top: config?.offset.dy,
+          left: config?.offset.dx,
           width: config?.size?.width,
           height: config?.size?.height,
           child: Transform.rotate(
