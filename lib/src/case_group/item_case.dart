@@ -37,7 +37,7 @@ class _Config {
 
 /// 操作外壳
 class ItemCase extends StatefulWidget {
-  const ItemCase({
+  ItemCase({
     Key? key,
     required this.child,
     this.isCentered = true,
@@ -96,6 +96,14 @@ class ItemCase extends StatefulWidget {
 
   /// 操作状态回调
   final bool? Function(OperationState)? onOperationStateChanged;
+
+  _ItemCaseState? state;
+
+  void resizeCase(Offset scaleOffset) => state?._scaleHandle(
+        scaleOffset / 2,
+        cancelEditMode: false,
+        keepAspectRatio: false,
+      );
 }
 
 class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
@@ -114,6 +122,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config.def());
     _config.value.offset = widget.caseStyle?.initOffset;
+    widget.state = this;
   }
 
   @override
@@ -124,6 +133,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       safeSetState(() {});
       widget.onOperationStateChanged?.call(_operationState);
     }
+    widget.state = this;
 
     super.didUpdateWidget(oldWidget);
   }
@@ -197,32 +207,40 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   }
 
   /// 缩放操作
-  void _scaleHandle(DragUpdateDetails dragUpdateDetails) {
-    if (_operationState != OperationState.scaling) {
-      if (_operationState == OperationState.moving ||
-          _operationState == OperationState.rotating) {
-        _operationState = OperationState.scaling;
-      } else {
-        _operationState = OperationState.scaling;
-        safeSetState(() {});
-      }
+  void _scaleHandle(
+    Offset scaleOffset, {
+    bool cancelEditMode = true,
+    bool keepAspectRatio = true,
+  }) {
+    if (cancelEditMode) {
+      if (_operationState != OperationState.scaling) {
+        if (_operationState == OperationState.moving ||
+            _operationState == OperationState.rotating) {
+          _operationState = OperationState.scaling;
+        } else {
+          _operationState = OperationState.scaling;
+          safeSetState(() {});
+        }
 
-      widget.onOperationStateChanged?.call(_operationState);
+        widget.onOperationStateChanged?.call(_operationState);
+      }
     }
 
     if (_config.value.offset == null) return;
     if (_config.value.size == null) return;
 
-    final double delta =
-        (dragUpdateDetails.delta.dx + dragUpdateDetails.delta.dy) / 2;
+    if (keepAspectRatio) {
+      final double middle = (scaleOffset.dx + scaleOffset.dy) / 2;
+      scaleOffset = Offset(middle, middle);
+    }
 
-    double newWidth = _config.value.size!.width + (delta * 2);
-    double newHeight = _config.value.size!.height + (delta * 2);
+    double newWidth = _config.value.size!.width + (scaleOffset.dx * 2);
+    double newHeight = _config.value.size!.height + (scaleOffset.dy * 2);
 
     double newOffsetX = _config.value.offset!.dx;
     double newOffsetY = _config.value.offset!.dy;
 
-    final double min = _caseStyle.iconSize * 3;
+    final double min = _caseStyle.iconSize * 2;
     final double max = MediaQuery.of(context).size.longestSide;
 
     if (newWidth <= min ||
@@ -232,8 +250,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       newWidth = _config.value.size!.width;
       newHeight = _config.value.size!.height;
     } else {
-      newOffsetX -= delta;
-      newOffsetY -= delta;
+      newOffsetX -= scaleOffset.dx;
+      newOffsetY -= scaleOffset.dy;
     }
 
     _config.value.size = Size(newWidth, newHeight);
@@ -361,8 +379,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       content = GetSize(
         onChange: (Size? size) {
           if (size != null && _config.value.size == null) {
-            _config.value.size = Size(size.width + _caseStyle.iconSize + 40,
-                size.height + _caseStyle.iconSize + 40);
+            _config.value.size = Size(size.width + _caseStyle.iconSize,
+                size.height + _caseStyle.iconSize);
             safeSetState(() {});
           }
         },
@@ -380,11 +398,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 边框
   Widget get _border {
-    return Positioned(
-      top: _caseStyle.iconSize / 2,
-      bottom: _caseStyle.iconSize / 2,
-      left: _caseStyle.iconSize / 2,
-      right: _caseStyle.iconSize / 2,
+    return Padding(
+      padding: EdgeInsets.all(_caseStyle.iconSize / 2),
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
@@ -448,7 +463,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       child: MouseRegion(
         cursor: SystemMouseCursors.resizeUpLeftDownRight,
         child: GestureDetector(
-          onPanUpdate: _scaleHandle,
+          onPanUpdate: (DragUpdateDetails dragUpdateDetails) =>
+              _scaleHandle(dragUpdateDetails.delta),
           onPanEnd: (_) => _changeToIdle(),
           child: _toolCase(
             const RotatedBox(

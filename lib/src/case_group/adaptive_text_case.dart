@@ -42,27 +42,49 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
   /// 文本内容
   late String _text = widget.adaptiveText.data;
 
-  /// 输入框宽度
-  double _textFieldWidth = 100;
-
   final FocusNode _focusNode = FocusNode();
+
+  Size? oldSize;
+
+  ItemCase? _itemCase;
 
   /// 文本样式
   TextStyle get _style => widget.adaptiveText.style ?? _defaultStyle;
 
   /// 计算文本大小
-  Size _textSize(String text, TextStyle style) {
+  Size _calculateTextSize() {
     final TextPainter textPainter = TextPainter(
-        text: TextSpan(text: text, style: style),
-        maxLines: 1,
-        textDirection: TextDirection.ltr)
-      ..layout(minWidth: 0, maxWidth: double.infinity);
+      text: TextSpan(text: _text, style: _style),
+      textAlign: widget.adaptiveText.textAlign ?? TextAlign.center,
+      textDirection: widget.adaptiveText.textDirection ?? TextDirection.ltr,
+      maxLines: widget.adaptiveText.maxLines,
+    )..layout(minWidth: 0, maxWidth: double.infinity);
     return textPainter.size;
+  }
+
+  Offset _calculateTextOffset() {
+    final Size newSize = _calculateTextSize();
+
+    final Offset scaleOffset = Offset(
+        newSize.width - (oldSize?.width ?? newSize.width),
+        newSize.height - (oldSize?.height ?? newSize.height));
+
+    oldSize = newSize;
+
+    _itemCase?.resizeCase(scaleOffset);
+
+    return scaleOffset;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateTextOffset();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ItemCase(
+    _itemCase = ItemCase(
       isCentered: false,
       isEditable: true,
       onPointerDown: widget.onPointerDown,
@@ -84,13 +106,8 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
 
         return;
       },
-      onSizeChanged: (Size s) {
-        final Size size = _textSize(_text, _style);
-        _textFieldWidth = size.width + 8;
-
-        return;
-      },
     );
+    return _itemCase!;
   }
 
   @override
@@ -106,13 +123,17 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: SizedBox(
-          width: _textFieldWidth,
+          width: _calculateTextSize().width + 32,
           child: TextFormField(
             enabled: _isEditing,
             focusNode: _focusNode,
             decoration: const InputDecoration(border: InputBorder.none),
             initialValue: _text,
-            onChanged: (String newText) => _text = newText,
+            onChanged: (String newText) {
+              _text = newText;
+              _calculateTextOffset();
+              safeSetState(() {});
+            },
             style: _style,
             textAlign: widget.adaptiveText.textAlign ?? TextAlign.center,
             textDirection: widget.adaptiveText.textDirection,
