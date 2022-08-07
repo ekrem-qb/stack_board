@@ -121,8 +121,17 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     super.initState();
     _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config.def());
-    _config.value.offset = widget.caseStyle?.initOffset;
     widget.state = this;
+    final Offset ownerCenter = context
+            .findAncestorRenderObjectOfType<RenderObject>()
+            ?.paintBounds
+            .center ??
+        Offset.zero;
+    _config.value.offset = ownerCenter + ownerCenter;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final Offset center = context.size?.center(Offset.zero) ?? Offset.zero;
+      _config.value.offset = ownerCenter - center;
+    });
   }
 
   @override
@@ -288,8 +297,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     final Offset pointer = dragUpdateDetails.globalPosition
         .translate(0, -_caseStyle.iconSize * 2.5);
     final Size size = _config.value.size!;
-    final Offset center =
-        Offset(start.dx + size.width / 2, start.dy + size.height / 2);
+    final Offset center = size.center(start);
     final Offset directionToPointer = pointer - center;
     final Offset directionToHandle = start - center;
 
@@ -520,11 +528,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 工具栏
   Widget get _tools {
-    return Positioned(
-      left: _caseStyle.iconSize / 2,
-      top: _caseStyle.iconSize / 2,
-      right: _caseStyle.iconSize / 2,
-      bottom: _caseStyle.iconSize / 2,
+    return Padding(
+      padding: EdgeInsets.all(_caseStyle.iconSize / 2),
       child: widget.tools!,
     );
   }

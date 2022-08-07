@@ -127,26 +127,17 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
 
   @override
   Widget build(BuildContext context) {
-    Widget _child;
-
-    if (widget.background == null)
-      _child = Stack(
-        fit: StackFit.expand,
-        children:
-            _children.map((StackBoardItem box) => _buildItem(box)).toList(),
-      );
-    else
-      _child = Stack(
-        fit: StackFit.expand,
-        children: <Widget>[
-          widget.background!,
-          ..._children.map((StackBoardItem box) => _buildItem(box)).toList(),
-        ],
-      );
+    final Stack child = Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        if (widget.background != null) widget.background!,
+        ..._children.map((StackBoardItem box) => _buildItem(box)).toList(),
+      ],
+    );
 
     _focusedItemId = null;
 
-    return _child;
+    return child;
   }
 
   /// 构建项
