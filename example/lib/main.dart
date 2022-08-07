@@ -194,6 +194,7 @@ class _HomePageState extends State<HomePage> {
                               'https://avatars.githubusercontent.com/u/47586449?s=200&v=4',
                               width: 200,
                               height: 200,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         );

@@ -112,8 +112,12 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   /// 外框样式
   CaseStyle get _caseStyle => widget.caseStyle ?? const CaseStyle();
 
+  static const int moveSnappingTreshold = 15;
   late final double minWidthAndHeight;
   late double maxWidthAndHeight;
+  late Offset center;
+  late Offset movingStartPosition;
+  late Offset movingStartOffset;
 
   @override
   void initState() {
@@ -124,15 +128,10 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
     minWidthAndHeight = _caseStyle.iconSize * 2;
 
-    final Offset ownerCenter = context
-            .findAncestorRenderObjectOfType<RenderObject>()
-            ?.paintBounds
-            .center ??
-        Offset.zero;
-    _config.value.offset = ownerCenter + ownerCenter;
+    _config.value.offset = const Offset(double.maxFinite, double.maxFinite);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final Offset center = context.size?.center(Offset.zero) ?? Offset.zero;
-      _config.value.offset = ownerCenter - center;
+      _recalculateCenter();
+      _config.value.offset = center;
     });
   }
 
@@ -140,6 +139,9 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     maxWidthAndHeight = MediaQuery.of(context).size.longestSide;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recalculateCenter();
+    });
   }
 
   @override
@@ -159,6 +161,17 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   void dispose() {
     _config.dispose();
     super.dispose();
+  }
+
+  Offset _recalculateCenter() {
+    final Offset ownerCenter = context
+            .findAncestorRenderObjectOfType<RenderObject>()
+            ?.paintBounds
+            .center ??
+        Offset.zero;
+    final Offset selfCenter = context.size?.center(Offset.zero) ?? Offset.zero;
+    center = ownerCenter - selfCenter;
+    return center;
   }
 
   /// 点击
@@ -186,6 +199,11 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     }
   }
 
+  void _movingStart(DragStartDetails dragStartDetails) {
+    movingStartPosition = dragStartDetails.globalPosition;
+    movingStartOffset = _config.value.offset;
+  }
+
   /// 移动操作
   void _moveHandle(DragUpdateDetails dragUpdateDetails) {
     if (_operationState != OperationState.moving) {
@@ -203,13 +221,18 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     final double angle = _config.value.angle;
     final double sina = math.sin(-angle);
     final double cosa = math.cos(-angle);
-    Offset delta = dragUpdateDetails.delta;
-
-    //向量旋转
-    delta = Offset(
+    final Offset delta = dragUpdateDetails.globalPosition - movingStartPosition;
+    final Offset rotatedDelta = Offset(
         sina * delta.dy + cosa * delta.dx, cosa * delta.dy - sina * delta.dx);
 
-    final Offset newOffset = _config.value.offset + delta;
+    Offset newOffset = movingStartOffset + rotatedDelta;
+
+    if ((newOffset.dx - center.dx).abs() < moveSnappingTreshold) {
+      newOffset = Offset(center.dx, newOffset.dy);
+    }
+    if ((newOffset.dy - center.dy).abs() < moveSnappingTreshold) {
+      newOffset = Offset(newOffset.dx, center.dy);
+    }
 
     //移动拦截
     if (!(widget.onOffsetChanged?.call(newOffset) ?? true)) return;
@@ -272,6 +295,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     if (!(widget.onOffsetChanged?.call(_config.value.offset) ?? true)) return;
 
     _config.value = _config.value.copy();
+
+    _recalculateCenter();
   }
 
   /// 旋转操作
@@ -356,6 +381,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
           onPointerDown: (_) => _onPointerDown(),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
+            onPanStart: _movingStart,
             onPanUpdate: _moveHandle,
             onPanEnd: (_) => _changeToIdle(),
             child: Stack(
