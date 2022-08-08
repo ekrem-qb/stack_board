@@ -28,11 +28,7 @@ class _CenterGuidesState extends State<CenterGuides>
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      top: 0,
+    return Positioned.fill(
       child: CustomPaint(
         child: widget.child,
         foregroundPainter: _CenterGuidesPainter(

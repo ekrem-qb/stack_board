@@ -139,11 +139,7 @@ class _DrawingBoardCaseState extends State<DrawingBoardCase>
 
   /// 绘制拦截图层
   Widget get _mask {
-    return Positioned(
-      top: 0,
-      bottom: 0,
-      left: 0,
-      right: 0,
+    return Positioned.fill(
       child: Container(color: Colors.transparent),
     );
   }

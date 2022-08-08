@@ -8,7 +8,12 @@ import 'package:stack_board/src/helper/operat_state.dart';
 
 /// 配置项
 class _Config {
-  _Config({this.size, this.offset = Offset.zero, this.angle = 0});
+  _Config({
+    this.size,
+    this.offset = Offset.zero,
+    this.angle = 0,
+    this.flipMatrix,
+  });
 
   /// 尺寸
   Size? size;
@@ -19,16 +24,20 @@ class _Config {
   /// 角度
   double angle;
 
+  Matrix4? flipMatrix;
+
   /// 拷贝
   _Config copy({
     Size? size,
     Offset? offset,
     double? angle,
+    Matrix4? flipMatrix,
   }) =>
       _Config(
         size: size ?? this.size,
         offset: offset ?? this.offset,
         angle: angle ?? this.angle,
+        flipMatrix: flipMatrix ?? this.flipMatrix,
       );
 }
 
@@ -49,6 +58,7 @@ class ItemCase extends StatefulWidget {
     this.onOffsetChanged,
     this.onAngleChanged,
     this.onPointerDown,
+    this.onFlipped,
   }) : super(key: key);
 
   @override
@@ -90,6 +100,8 @@ class ItemCase extends StatefulWidget {
 
   /// 角度变化回调
   final bool? Function(double offset)? onAngleChanged;
+
+  final bool? Function(Matrix4 flipMatrix)? onFlipped;
 
   /// 操作状态回调
   final bool? Function(OperationState)? onOperationStateChanged;
@@ -355,6 +367,23 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     }
   }
 
+  void _flip({required bool vertical}) {
+    final Matrix4 newFlipMatrix =
+        _config.value.flipMatrix ?? Matrix4.identity();
+
+    if (vertical) {
+      newFlipMatrix.rotateX(math.pi);
+    } else {
+      newFlipMatrix.rotateY(math.pi);
+    }
+
+    _config.value = _config.value.copy(flipMatrix: newFlipMatrix);
+
+    if (!(widget.onFlipped?.call(newFlipMatrix) ?? true)) return;
+
+    safeSetState(() {});
+  }
+
   /// 主体鼠标指针样式
   MouseCursor get _cursor {
     if (_operationState == OperationState.moving) {
@@ -370,9 +399,10 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   Widget build(BuildContext context) {
     return ExValueBuilder<_Config>(
       shouldRebuild: (_Config? previousConfig, _Config? newConfig) =>
+          previousConfig?.size != newConfig?.size ||
           previousConfig?.offset != newConfig?.offset ||
           previousConfig?.angle != newConfig?.angle ||
-          previousConfig?.size != newConfig?.size,
+          previousConfig?.flipMatrix != newConfig?.flipMatrix,
       valueListenable: _config,
       builder: (_, _Config? config, Widget? child) {
         return Positioned(
@@ -382,44 +412,49 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
           height: config?.size?.height,
           child: Transform.rotate(
             angle: config?.angle ?? 0,
-            child: child,
+            child: MouseRegion(
+              cursor: _cursor,
+              child: Listener(
+                onPointerDown: (_) => _onPointerDown(),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanStart: _movingStart,
+                  onPanUpdate: _moveHandle,
+                  onPanEnd: (_) {
+                    _changeToIdle();
+                    _boardController?.toggleCenterGuides(
+                      newVerticalState: false,
+                      newHorizontalState: false,
+                    );
+                  },
+                  child: Stack(
+                    fit: StackFit.passthrough,
+                    children: <Widget>[
+                      if (_operationState != OperationState.complete) _border,
+                      Transform(
+                        transform: config?.flipMatrix ?? Matrix4.identity(),
+                        alignment: Alignment.center,
+                        child: _child,
+                      ),
+                      if (widget.tools != null) _tools,
+                      if (_operationState != OperationState.complete) _flipY,
+                      if (_operationState != OperationState.complete) _rotate,
+                      if (_operationState != OperationState.complete) _flipX,
+                      if (widget.onDelete != null &&
+                          _operationState != OperationState.complete)
+                        _delete,
+                      if (widget.isEditable &&
+                          _operationState != OperationState.complete)
+                        _edit,
+                      if (_operationState != OperationState.complete) _scale,
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         );
       },
-      child: MouseRegion(
-        cursor: _cursor,
-        child: Listener(
-          onPointerDown: (_) => _onPointerDown(),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: _movingStart,
-            onPanUpdate: _moveHandle,
-            onPanEnd: (_) {
-              _changeToIdle();
-              _boardController?.toggleCenterGuides(
-                newVerticalState: false,
-                newHorizontalState: false,
-              );
-            },
-            child: Stack(
-              fit: StackFit.passthrough,
-              children: <Widget>[
-                if (_operationState != OperationState.complete) _border,
-                _child,
-                if (widget.tools != null) _tools,
-                if (widget.isEditable &&
-                    _operationState != OperationState.complete)
-                  _edit,
-                if (_operationState != OperationState.complete) _rotate,
-                if (widget.onDelete != null &&
-                    _operationState != OperationState.complete)
-                  _delete,
-                if (_operationState != OperationState.complete) _scale,
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -451,7 +486,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   Widget get _border {
     return Padding(
       padding: EdgeInsets.all(_caseStyle.iconSize / 2),
-      child: Container(
+      child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border.all(
             color: _caseStyle.borderColor,
@@ -464,9 +499,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 编辑手柄
   Widget get _edit {
-    return Positioned(
-      bottom: 0,
-      left: 0,
+    return Align(
+      alignment: Alignment.bottomLeft,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
@@ -491,9 +525,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 删除手柄
   Widget get _delete {
-    return Positioned(
-      top: 0,
-      right: 0,
+    return Align(
+      alignment: Alignment.topRight,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
@@ -506,9 +539,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 缩放手柄
   Widget get _scale {
-    return Positioned(
-      bottom: 0,
-      right: 0,
+    return Align(
+      alignment: Alignment.bottomRight,
       child: MouseRegion(
         cursor: SystemMouseCursors.resizeUpLeftDownRight,
         child: GestureDetector(
@@ -528,9 +560,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
   /// 旋转手柄
   Widget get _rotate {
-    return Positioned(
-      top: 0,
-      left: 0,
+    return Align(
+      alignment: Alignment.topLeft,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
@@ -539,6 +570,41 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
           onDoubleTap: _turnBack,
           child: _toolCase(
             const Icon(Icons.refresh),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 旋转手柄
+  Widget get _flipX {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => _flip(vertical: true),
+          child: _toolCase(
+            const RotatedBox(
+              quarterTurns: 1,
+              child: Icon(Icons.flip),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 旋转手柄
+  Widget get _flipY {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: () => _flip(vertical: false),
+          child: _toolCase(
+            const Icon(Icons.flip),
           ),
         ),
       ),
@@ -554,7 +620,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
         child: IconTheme(
           data: Theme.of(context).iconTheme.copyWith(
                 color: _caseStyle.iconColor,
-                size: _caseStyle.iconSize * 0.6,
+                size: _caseStyle.iconSize * 0.5,
               ),
           child: child,
         ),
