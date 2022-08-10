@@ -235,14 +235,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       widget.onOperationStateChanged?.call(_operationState);
     }
 
-    final double angle = _config.value.angle;
-    final double sina = math.sin(-angle);
-    final double cosa = math.cos(-angle);
-    final Offset delta = dragUpdateDetails.globalPosition - movingStartPosition;
-    final Offset rotatedDelta = Offset(
-        sina * delta.dy + cosa * delta.dx, cosa * delta.dy - sina * delta.dx);
-
-    Offset newOffset = movingStartOffset + rotatedDelta;
+    Offset newOffset = movingStartOffset +
+        (dragUpdateDetails.globalPosition - movingStartPosition);
 
     if ((newOffset.dx - center.dx).abs() < moveSnappingTreshold) {
       newOffset = Offset(center.dx, newOffset.dy);
