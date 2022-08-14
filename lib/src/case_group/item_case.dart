@@ -43,8 +43,9 @@ class _Config {
 
 /// 操作外壳
 class ItemCase extends StatefulWidget {
-  ItemCase({
+  const ItemCase({
     Key? key,
+    this.controller,
     required this.child,
     this.isCentered = false,
     this.tools,
@@ -63,6 +64,8 @@ class ItemCase extends StatefulWidget {
 
   @override
   _ItemCaseState createState() => _ItemCaseState();
+
+  final ItemCaseController? controller;
 
   /// 子控件
   final Widget child;
@@ -105,14 +108,6 @@ class ItemCase extends StatefulWidget {
 
   /// 操作状态回调
   final bool? Function(OperationState)? onOperationStateChanged;
-
-  _ItemCaseState? state;
-
-  void resizeCase(Offset scaleOffset) => state?._scaleHandle(
-        scaleOffset / 2,
-        cancelEditMode: false,
-        keepAspectRatio: false,
-      );
 }
 
 class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
@@ -139,8 +134,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     super.initState();
     _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config());
-    widget.state = this;
-
     minWidthAndHeight = _caseStyle.iconSize * 2;
 
     _config.value.offset = const Offset(double.maxFinite, double.maxFinite);
@@ -159,6 +152,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     });
     _boardController =
         context.findAncestorWidgetOfExactType<StackBoard>()?.controller;
+    widget.controller?._itemCaseState = this;
   }
 
   @override
@@ -169,8 +163,6 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       safeSetState(() {});
       widget.onOperationStateChanged?.call(_operationState);
     }
-    widget.state = this;
-
     super.didUpdateWidget(oldWidget);
   }
 
@@ -632,5 +624,21 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       padding: EdgeInsets.all(_caseStyle.iconSize / 2),
       child: widget.tools!,
     );
+  }
+}
+
+class ItemCaseController {
+  _ItemCaseState? _itemCaseState;
+
+  void resizeCase(Offset scaleOffset) {
+    _itemCaseState?._scaleHandle(
+      scaleOffset / 2,
+      cancelEditMode: false,
+      keepAspectRatio: false,
+    );
+  }
+
+  void dispose() {
+    _itemCaseState = null;
   }
 }

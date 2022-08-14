@@ -46,7 +46,7 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
 
   Size? oldSize;
 
-  ItemCase? _itemCase;
+  final ItemCaseController _itemCaseController = ItemCaseController();
 
   /// 文本样式
   TextStyle get _style => widget.adaptiveText.style ?? _defaultStyle;
@@ -71,7 +71,7 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
 
     oldSize = newSize;
 
-    _itemCase?.resizeCase(scaleOffset);
+    _itemCaseController.resizeCase(scaleOffset);
 
     return scaleOffset;
   }
@@ -84,7 +84,8 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
 
   @override
   Widget build(BuildContext context) {
-    _itemCase = ItemCase(
+    return ItemCase(
+      controller: _itemCaseController,
       isCentered: false,
       isEditable: true,
       onPointerDown: widget.onPointerDown,
@@ -107,7 +108,6 @@ class _AdaptiveTextCaseState extends State<AdaptiveTextCase>
         return;
       },
     );
-    return _itemCase!;
   }
 
   @override
