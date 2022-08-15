@@ -126,6 +126,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   late Offset center;
   late Offset movingStartPosition;
   late Offset movingStartOffset;
+  late Offset rotatingPointerOffset;
+  late double rotatingStartAngle;
 
   late StackBoardController? _boardController;
 
@@ -308,6 +310,11 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     _recalculateCenter();
   }
 
+  void _rotationStart(DragStartDetails dragStartDetails) {
+    rotatingPointerOffset = _config.value.offset;
+    rotatingStartAngle = _config.value.angle;
+  }
+
   /// 旋转操作
   void _rotateHandle(DragUpdateDetails dragUpdateDetails) {
     if (_operationState != OperationState.rotating) {
@@ -324,17 +331,16 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
     if (_config.value.size == null) return;
 
+    rotatingPointerOffset += dragUpdateDetails.delta;
     final Offset start = _config.value.offset;
-    final Offset pointer = dragUpdateDetails.globalPosition
-        .translate(0, -_caseStyle.iconSize * 2.5);
     final Size size = _config.value.size!;
     final Offset center = size.center(start);
-    final Offset directionToPointer = pointer - center;
+    final Offset directionToPointer = rotatingPointerOffset - center;
     final Offset directionToHandle = start - center;
 
-    final double angle =
+    final double angle = rotatingStartAngle +
         math.atan2(directionToPointer.dy, directionToPointer.dx) -
-            math.atan2(directionToHandle.dy, directionToHandle.dx);
+        math.atan2(directionToHandle.dy, directionToHandle.dx);
 
     //旋转拦截
     if (!(widget.onAngleChanged?.call(angle) ?? true)) return;
@@ -551,6 +557,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
+          onPanStart: _rotationStart,
           onPanUpdate: _rotateHandle,
           onPanEnd: (_) => _changeToIdle(),
           onDoubleTap: _turnBack,
