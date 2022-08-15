@@ -189,13 +189,11 @@ class _HomePageState extends State<HomePage> {
                     FloatingActionButton(
                       onPressed: () {
                         _boardController.add(
-                          StackBoardItem(
-                            child: Image.network(
-                              'https://avatars.githubusercontent.com/u/47586449?s=200&v=4',
-                              width: 200,
-                              height: 200,
-                              fit: BoxFit.cover,
-                            ),
+                          const MaskedImage(
+                            NetworkImage(
+                                'https://uprostim.com/wp-content/uploads/2021/05/image034-5.jpg'),
+                            maskImage: NetworkImage(
+                                'https://pngimg.com/uploads/heart/heart_PNG51120.png'),
                           ),
                         );
                       },

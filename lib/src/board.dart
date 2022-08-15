@@ -3,10 +3,12 @@ library stack_board;
 import 'package:flutter/material.dart';
 import 'package:flutter_drawing_board/flutter_drawing_board.dart';
 import 'package:stack_board/src/helper/operat_state.dart';
+import 'package:stack_board/src/item_group/masked_image.dart';
 
 import 'case_group/adaptive_text_case.dart';
 import 'case_group/drawing_board_case.dart';
 import 'case_group/item_case.dart';
+import 'case_group/masked_image_case.dart';
 import 'helper/case_style.dart';
 import 'helper/center_guides.dart';
 import 'item_group/adaptive_text.dart';
@@ -182,6 +184,15 @@ class _StackBoardState extends State<StackBoard> with SafeState<StackBoard> {
       child = DrawingBoardCase(
         key: _getKey(item.id),
         stackDrawing: item,
+        onDelete: () => _onDelete(item),
+        onPointerDown: () => _moveItemToTop(item.id),
+        operationState:
+            _focusedItemId == item.id ? OperationState.idle : _operationState,
+      );
+    } else if (item is MaskedImage) {
+      child = MaskedImageCase(
+        key: _getKey(item.id),
+        maskedImage: item,
         onDelete: () => _onDelete(item),
         onPointerDown: () => _moveItemToTop(item.id),
         operationState:

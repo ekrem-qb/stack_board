@@ -648,4 +648,6 @@ class ItemCaseController {
   void dispose() {
     _itemCaseState = null;
   }
+
+  SafeValueNotifier<_Config>? get config => _itemCaseState?._config;
 }
