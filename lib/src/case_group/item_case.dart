@@ -121,6 +121,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   CaseStyle get _caseStyle => widget.caseStyle ?? const CaseStyle();
 
   static const int moveSnappingTreshold = 15;
+  late final Size originalSize;
   late final double minWidthAndHeight;
   late double maxWidthAndHeight;
   late Offset center;
@@ -128,6 +129,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
   late Offset movingStartOffset;
   late Offset rotatingPointerOffset;
   late double rotatingStartAngle;
+  late Size currentUnfittedSize;
 
   late StackBoardController? _boardController;
 
@@ -136,7 +138,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
     super.initState();
     _operationState = widget.operationState ?? OperationState.idle;
     _config = SafeValueNotifier<_Config>(_Config());
-    minWidthAndHeight = _caseStyle.iconSize * 2;
+    minWidthAndHeight = _caseStyle.iconSize * 3;
 
     _config.value.offset = const Offset(double.maxFinite, double.maxFinite);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -273,41 +275,51 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
     if (_config.value.size == null) return;
 
+    currentUnfittedSize = Size(
+      currentUnfittedSize.width + (scaleOffset.dx * 2),
+      currentUnfittedSize.height + (scaleOffset.dy * 2),
+    );
+
+    Size fittedSize;
+
     if (keepAspectRatio) {
-      final double middle = (scaleOffset.dx + scaleOffset.dy) / 2;
-      scaleOffset = Offset(middle, middle);
-    }
-
-    double newWidth = _config.value.size!.width + (scaleOffset.dx * 2);
-    double newHeight = _config.value.size!.height + (scaleOffset.dy * 2);
-
-    double newOffsetX = _config.value.offset.dx;
-    double newOffsetY = _config.value.offset.dy;
-
-    if (newWidth <= minWidthAndHeight ||
-        newHeight <= minWidthAndHeight ||
-        newWidth >= maxWidthAndHeight ||
-        newHeight >= maxWidthAndHeight) {
-      newWidth = _config.value.size!.width;
-      newHeight = _config.value.size!.height;
+      fittedSize = applyBoxFit(
+        BoxFit.contain,
+        originalSize,
+        currentUnfittedSize,
+      ).destination;
     } else {
-      newOffsetX -= scaleOffset.dx;
-      newOffsetY -= scaleOffset.dy;
+      fittedSize = currentUnfittedSize;
     }
 
-    _config.value.size = Size(newWidth, newHeight);
+    fittedSize = Size(
+      fittedSize.width.clamp(minWidthAndHeight, maxWidthAndHeight),
+      fittedSize.height.clamp(minWidthAndHeight, maxWidthAndHeight),
+    );
 
-    //缩放拦截
-    if (!(widget.onSizeChanged?.call(_config.value.size!) ?? true)) return;
+    if (fittedSize.width > minWidthAndHeight &&
+        fittedSize.height > minWidthAndHeight &&
+        fittedSize.width < maxWidthAndHeight &&
+        fittedSize.height < maxWidthAndHeight) {
+      _config.value.offset = Offset(
+        _config.value.offset.dx -
+            ((fittedSize.width - _config.value.size!.width) / 2),
+        _config.value.offset.dy -
+            ((fittedSize.height - _config.value.size!.height) / 2),
+      );
 
-    _config.value.offset = Offset(newOffsetX, newOffsetY);
+      // //移动拦截
+      if (!(widget.onOffsetChanged?.call(_config.value.offset) ?? true)) return;
 
-    // //移动拦截
-    if (!(widget.onOffsetChanged?.call(_config.value.offset) ?? true)) return;
+      _config.value.size = fittedSize;
 
-    _config.value = _config.value.copy();
+      //缩放拦截
+      if (!(widget.onSizeChanged?.call(_config.value.size!) ?? true)) return;
 
-    _recalculateCenter();
+      _config.value = _config.value.copy();
+
+      _recalculateCenter();
+    }
   }
 
   void _rotationStart(DragStartDetails dragStartDetails) {
@@ -459,6 +471,8 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
           if (size != null && _config.value.size == null) {
             _config.value.size = Size(size.width + _caseStyle.iconSize,
                 size.height + _caseStyle.iconSize);
+            originalSize = _config.value.size!;
+            currentUnfittedSize = originalSize;
             safeSetState(() {});
           }
         },

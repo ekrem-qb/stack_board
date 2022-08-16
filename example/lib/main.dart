@@ -192,8 +192,6 @@ class _HomePageState extends State<HomePage> {
                           const MaskedImage(
                             NetworkImage(
                                 'https://uprostim.com/wp-content/uploads/2021/05/image034-5.jpg'),
-                            maskImage: NetworkImage(
-                                'https://pngimg.com/uploads/heart/heart_PNG51120.png'),
                           ),
                         );
                       },

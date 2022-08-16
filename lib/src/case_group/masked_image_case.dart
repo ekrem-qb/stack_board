@@ -52,7 +52,7 @@ class MaskedImageCase extends StatefulWidget {
 }
 
 class _MaskedImageCaseState extends State<MaskedImageCase> {
-  static const Size defaultSize = ui.Size(355, 236.5);
+  static const Size defaultSize = Size(355, 236.5);
 
   ui.Image? mask;
 
@@ -84,9 +84,9 @@ class _MaskedImageCaseState extends State<MaskedImageCase> {
               mask = null;
               setState(() {});
             }
-            return true;
           });
         }
+        return true;
       },
       operationState: widget.operationState,
       caseStyle: widget.maskedImage.caseStyle,
@@ -136,20 +136,21 @@ class _MaskedImageCaseState extends State<MaskedImageCase> {
       mask = frameInfo.image;
     }
 
-    final ui.Size caseSize = ui.Size(
+    final Size caseSize = Size(
       (_itemCaseController.config?.value.size?.width ?? defaultSize.width) -
           (widget.maskedImage.caseStyle?.iconSize ?? 24),
       (_itemCaseController.config?.value.size?.height ?? defaultSize.height) -
           (widget.maskedImage.caseStyle?.iconSize ?? 24),
     );
 
-    ui.Size size;
-
-    if (caseSize.width / caseSize.height > mask!.width / mask!.height)
-      size =
-          Size(mask!.width * caseSize.height / mask!.height, caseSize.height);
-    else
-      size = Size(caseSize.width, mask!.height * caseSize.width / mask!.width);
+    final Size size = applyBoxFit(
+      BoxFit.contain,
+      Size(
+        mask!.width.toDouble(),
+        mask!.height.toDouble(),
+      ),
+      caseSize,
+    ).destination;
 
     final Matrix4 matrix = Matrix4.identity().scaled(
       size.width / mask!.width,
