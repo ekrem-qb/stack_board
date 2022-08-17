@@ -54,62 +54,80 @@ class MaskedImageCase extends StatefulWidget {
 class _MaskedImageCaseState extends State<MaskedImageCase> {
   static const Size defaultSize = Size(355, 236.5);
 
-  ui.Image? mask;
-
-  late ImageProvider? maskImage = widget.maskedImage.maskImage;
-
   final ItemCaseController _itemCaseController = ItemCaseController();
 
-  @override
-  Widget build(BuildContext context) {
-    return ItemCase(
-      controller: _itemCaseController,
-      isEditable: true,
-      onPointerDown: widget.onPointerDown,
-      tapToEdit: widget.maskedImage.tapToEdit,
-      onDelete: widget.onDelete,
-      onSizeChanged: (_) {
-        setState(() {});
-        return true;
-      },
-      onOperationStateChanged: (OperationState operationState) {
-        if (operationState == OperationState.editing) {
-          FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: <String>['png'],
-          ).then((FilePickerResult? result) {
-            if (result != null) {
-              final File file = File(result.files.single.path!);
-              maskImage = FileImage(file);
-              mask = null;
-              setState(() {});
-            }
-          });
-        }
-        return true;
-      },
-      operationState: widget.operationState,
-      caseStyle: widget.maskedImage.caseStyle,
-      child: _buildMaskedImage(context),
-    );
+  late ui.Image _mask;
+
+  late ImageProvider? _maskImage = widget.maskedImage.maskImage;
+
+  Stream<ui.ImageShader?> get _shaderImage => _shaderImageController.stream;
+  final StreamController<ui.ImageShader?> _shaderImageController =
+      StreamController<ui.ImageShader?>();
+
+  Future<void> _renderShaderImage() async {
+    final TypedData imageData =
+        await _maskImage!.getBytes(context) ?? ByteData(0);
+
+    final ui.Codec codec =
+        await ui.instantiateImageCodec(imageData.buffer.asUint8List());
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+
+    _mask = frameInfo.image;
+
+    _calculateMaskSizeAndOffset();
   }
 
-  Widget _buildMaskedImage(BuildContext context) {
-    return maskImage == null
-        ? _buildImage
-        : FutureBuilder<ui.ImageShader>(
-            future: _createShaderImage(context, maskImage!),
-            builder:
-                (BuildContext context, AsyncSnapshot<ui.ImageShader> snapshot) {
-              return snapshot.hasData
-                  ? ShaderMask(
-                      blendMode: BlendMode.dstIn,
-                      shaderCallback: (_) => snapshot.data!,
-                      child: _buildImage,
-                    )
-                  : _buildImage;
-            },
-          );
+  void _calculateMaskSizeAndOffset() {
+    if (_maskImage != null) {
+      final Size caseSize = Size(
+        (_itemCaseController.config?.value.size?.width ?? defaultSize.width) -
+            (widget.maskedImage.caseStyle?.iconSize ?? 24),
+        (_itemCaseController.config?.value.size?.height ?? defaultSize.height) -
+            (widget.maskedImage.caseStyle?.iconSize ?? 24),
+      );
+
+      final Size size = applyBoxFit(
+        BoxFit.contain,
+        Size(
+          _mask.width.toDouble(),
+          _mask.height.toDouble(),
+        ),
+        caseSize,
+      ).destination;
+
+      final Matrix4 matrix = Matrix4.identity().scaled(
+        size.width / _mask.width,
+        size.height / _mask.height,
+      );
+      final ui.Offset center =
+          caseSize.center(Offset.zero) - size.center(Offset.zero);
+      matrix.leftTranslate(center.dx, center.dy);
+
+      final ImageShader shader = ImageShader(
+        _mask,
+        TileMode.decal,
+        TileMode.decal,
+        matrix.storage,
+      );
+
+      _shaderImageController.add(shader);
+    }
+  }
+
+  void _onEdit() {
+    FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: <String>['png'],
+    ).then((FilePickerResult? result) {
+      if (result != null) {
+        final File file = File(result.files.single.path!);
+        _maskImage = FileImage(file);
+        _renderShaderImage();
+      } else {
+        _maskImage = null;
+        _shaderImageController.add(null);
+      }
+    });
   }
 
   Widget get _buildImage {
@@ -121,52 +139,46 @@ class _MaskedImageCaseState extends State<MaskedImageCase> {
     );
   }
 
-  Future<ui.ImageShader> _createShaderImage(
-    BuildContext context,
-    ImageProvider maskImage,
-  ) async {
-    if (mask == null) {
-      final TypedData imageData =
-          await maskImage.getBytes(context) ?? ByteData(0);
-
-      final ui.Codec codec =
-          await ui.instantiateImageCodec(imageData.buffer.asUint8List());
-      final ui.FrameInfo frameInfo = await codec.getNextFrame();
-
-      mask = frameInfo.image;
+  @override
+  void initState() {
+    super.initState();
+    if (_maskImage != null) {
+      _renderShaderImage();
     }
+  }
 
-    final Size caseSize = Size(
-      (_itemCaseController.config?.value.size?.width ?? defaultSize.width) -
-          (widget.maskedImage.caseStyle?.iconSize ?? 24),
-      (_itemCaseController.config?.value.size?.height ?? defaultSize.height) -
-          (widget.maskedImage.caseStyle?.iconSize ?? 24),
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<ui.ImageShader?>(
+      stream: _shaderImage,
+      builder: (BuildContext context, AsyncSnapshot<ui.ImageShader?> snapshot) {
+        return ItemCase(
+          controller: _itemCaseController,
+          isEditable: true,
+          onPointerDown: widget.onPointerDown,
+          tapToEdit: widget.maskedImage.tapToEdit,
+          onDelete: widget.onDelete,
+          onSizeChanged: (_) {
+            _calculateMaskSizeAndOffset();
+            return true;
+          },
+          onOperationStateChanged: (OperationState operationState) {
+            if (operationState == OperationState.editing) {
+              _onEdit();
+            }
+            return true;
+          },
+          operationState: widget.operationState,
+          caseStyle: widget.maskedImage.caseStyle,
+          child: snapshot.hasData
+              ? ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (_) => snapshot.data!,
+                  child: _buildImage,
+                )
+              : _buildImage,
+        );
+      },
     );
-
-    final Size size = applyBoxFit(
-      BoxFit.contain,
-      Size(
-        mask!.width.toDouble(),
-        mask!.height.toDouble(),
-      ),
-      caseSize,
-    ).destination;
-
-    final Matrix4 matrix = Matrix4.identity().scaled(
-      size.width / mask!.width,
-      size.height / mask!.height,
-    );
-    final ui.Offset center =
-        caseSize.center(Offset.zero) - size.center(Offset.zero);
-    matrix.leftTranslate(center.dx, center.dy);
-
-    final ImageShader shader = ImageShader(
-      mask!,
-      TileMode.decal,
-      TileMode.decal,
-      matrix.storage,
-    );
-
-    return shader;
   }
 }
