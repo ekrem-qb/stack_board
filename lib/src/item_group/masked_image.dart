@@ -7,7 +7,7 @@ import 'stack_board_item.dart';
 class MaskedImage extends StackBoardItem {
   const MaskedImage(
     this.image, {
-    this.maskImage,
+    this.mask,
     final int? id,
     final Future<bool> Function()? onDelete,
     CaseStyle? caseStyle,
@@ -21,12 +21,12 @@ class MaskedImage extends StackBoardItem {
         );
 
   final ImageProvider image;
-  final ImageProvider? maskImage;
+  final String? mask;
 
   @override
   MaskedImage copyWith({
     ImageProvider? image,
-    ImageProvider? maskImage,
+    String? mask,
     int? id,
     Widget? child,
     Function(bool)? onEdit,
@@ -36,7 +36,7 @@ class MaskedImage extends StackBoardItem {
   }) {
     return MaskedImage(
       image ?? this.image,
-      maskImage: maskImage ?? this.maskImage,
+      mask: mask ?? this.mask,
       id: id ?? this.id,
       onDelete: onDelete ?? this.onDelete,
       caseStyle: caseStyle ?? this.caseStyle,
