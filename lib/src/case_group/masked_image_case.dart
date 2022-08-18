@@ -80,6 +80,15 @@ class _MaskedImageCaseState extends State<MaskedImageCase> {
     return true;
   }
 
+  bool? _onResizeDone(ui.Size size) {
+    if (_maskSvgString != null) {
+      _calculateSvgSize();
+      _maskSvgOldSize = _maskSvgCurrentSize;
+      _renderSvg();
+    }
+    return true;
+  }
+
   Future<void> _renderSvg() async {
     _maskSvgImage = await _maskSvg
         .toPicture(
@@ -166,6 +175,20 @@ class _MaskedImageCaseState extends State<MaskedImageCase> {
       height: defaultSize.height,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
+      loadingBuilder: (
+        BuildContext context,
+        Widget child,
+        ImageChunkEvent? loadingProgress,
+      ) {
+        return loadingProgress != null
+            ? Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!,
+                ),
+              )
+            : child;
+      },
     );
   }
 
@@ -189,6 +212,7 @@ class _MaskedImageCaseState extends State<MaskedImageCase> {
           tapToEdit: widget.maskedImage.tapToEdit,
           onDelete: widget.onDelete,
           onSizeChanged: _onSizeChanged,
+          onResizeDone: _onResizeDone,
           onOperationStateChanged: (OperationState operationState) {
             if (operationState == OperationState.editing) {
               _onEdit();

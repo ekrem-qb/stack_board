@@ -55,6 +55,7 @@ class ItemCase extends StatefulWidget {
     this.isEditable = false,
     this.onDelete,
     this.onSizeChanged,
+    this.onResizeDone,
     this.onOperationStateChanged,
     this.onOffsetChanged,
     this.onAngleChanged,
@@ -97,6 +98,8 @@ class ItemCase extends StatefulWidget {
   /// 尺寸变化回调
   /// 返回值可控制是否继续进行
   final bool? Function(Size size)? onSizeChanged;
+
+  final bool? Function(Size size)? onResizeDone;
 
   ///位置变化回调
   final bool? Function(Offset offset)? onOffsetChanged;
@@ -320,6 +323,14 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
 
       _recalculateCenter();
     }
+  }
+
+  void _scalingEnd(DragEndDetails dragEndDetails) {
+    if (_config.value.size != null) {
+      currentUnfittedSize = _config.value.size!;
+    }
+    _changeToIdle();
+    if (!(widget.onResizeDone?.call(_config.value.size!) ?? true)) return;
   }
 
   void _rotationStart(DragStartDetails dragStartDetails) {
@@ -552,7 +563,7 @@ class _ItemCaseState extends State<ItemCase> with SafeState<ItemCase> {
         child: GestureDetector(
           onPanUpdate: (DragUpdateDetails dragUpdateDetails) =>
               _scaleHandle(dragUpdateDetails.delta),
-          onPanEnd: (_) => _changeToIdle(),
+          onPanEnd: _scalingEnd,
           child: _toolCase(
             const RotatedBox(
               quarterTurns: 1,
